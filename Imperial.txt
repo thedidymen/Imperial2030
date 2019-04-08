@@ -1,4 +1,11 @@
 {
+	Game : {
+		noplayers : 0
+		round : 0
+		players : []
+		Superpowers : []
+		}
+
 	Players : {
 		Player : {
 			Money : 0,
@@ -33,6 +40,47 @@
 			Boats : 0,
 			}
 		}
+}
+
+
+
+Bonds = {
+	2 : {
+	'Bonds' : 2,
+	'Rente' : 1
+	},
+	4 : {
+	'Bonds' : 4,
+	'Rente' : 2
+	},
+	6 : {
+	'Bonds' : 6,
+	'Rente' : 3
+	},
+	9 : {
+	'Bonds' : 9,
+	'Rente' : 4
+	},
+	12 : {
+	'Bonds' : 12,
+	'Rente' : 5
+	},
+	16 : {
+	'Bonds' : 16,
+	'Rente' : 6
+	},
+	20 : {
+	'Bonds' : 20,
+	'Rente' : 7
+	},
+	25 : {
+	'Bonds' : 25,
+	'Rente' : 8
+	},
+	30 : {
+	'Bonds' : 30,
+	'Rente' : 9
+	}
 }
 
 land  = [Alaska, Canada, Quebec, Mexico, Colombia, Peru, Argentina, Guinea, North-Africa, Nigeria, East-Africa, Congo, South-Africa, Near East, Iran, Turkey, Ukraine, Afghanistan, Kazakhstan, Mongolia, Korea, Japan, Indochina, Philppines, Indonesia, Australia, New-Zeeland]
