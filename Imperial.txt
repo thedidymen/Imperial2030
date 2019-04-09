@@ -9,16 +9,13 @@
 	Players : {
 		Player : {
 			Money : 0,
-			Bonds : {
-				Country : []
-				},
+			Investor : False
 			ControlsSuperpower : []
 			}
 		},
 	Superpowers : [
 		Superpower: {
 			Money : 0,
-			Bonds : [],
 			Cities : {
 				City : {
 					Factory : False,
@@ -31,13 +28,20 @@
 			ControledBy : Player
 			}
 		],
-	Areas : {	
-		Area : {
-			ConnectedTo : [],
-			ControledBy : Superpower,
-			HomeCountry : SuperPower,
-			Tanks : 0,
-			Boats : 0,
+	Areas : {
+		'Area' : {
+			'ConnectedTo' : [list of areas], 
+			'ControledBy' : '['Superpower' or None]', 
+			'HomeCountry' : '['Superpower' or none]', 
+			'Tanks' : [number of tanks], 
+			'Boats' : [number of boats]
+			}
+		}	
+	Bonds : {
+		'Superpower' : {
+			[number of bonds] : {
+				'Owner' : ['Bank' or 'player'], 
+				'Interest' : [amount of interest]}
 			}
 		}
 }
