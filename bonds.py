@@ -16,6 +16,29 @@
 
 
 
+	# Players : {
+	# 	Player : {
+	# 		Money : 0,
+	# 		Investor : False
+	# 		ControlsSuperpower : []
+	# 		}
+	# 	},
+
+
+def createplayers(players):
+
+	for player in players:
+		p[player] = {'Money' : 0, 'Investor' : False, 'ControlsSuperpower' : []}
+	return p
+
+def printplayers():
+	players = ['Player1', 'Player2', 'Player3', 'Player4', 'Player5', 'Player6']
+
+
+
+
+
+
 
 def createsuperpowers():
 	naval = {'San Francisco' : False, 'New Orleans' : True, 'New York' : False, 'Fortaleza' : False, 'Rio de Janeiro' : True, 'London' : True, 'Rome' : False, 'Murmansk' : False, 'Vladivostok' : True, 'Shanghai' : True, 'Kolkata' : False, 'Mumbai' : True}

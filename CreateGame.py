@@ -40,6 +40,8 @@ def createsuperpowers(homecities, naval, army):
 	for sp in homecities.keys():
 		cities = {}
 		for city in homecities[sp]:
+			factory = city in army.keys()
+			navalb = city in naval.keys()
 			if city in army.keys():
 				build = army[city]
 			elif city in naval.keys():
@@ -49,6 +51,21 @@ def createsuperpowers(homecities, naval, army):
 			cities[city] = {'Factory' : factory, 'Navalbase' : navalb, 'Build' : build}
 		Superpowers[sp] = {'Money' : 0, 'Powerlevel' : 0, 'Controls' : [], 'ControledBy' : '', 'Cities' : cities}
 	return Superpowers
+
+def createplayers(players):
+	p = {}
+	for player in players:
+		p[player] = {'Money' : 0, 'Investor' : False, 'ControlsSuperpower' : []}
+	return p
+
+def printplayers():
+	players = ['Player1', 'Player2', 'Player3', 'Player4', 'Player5', 'Player6']
+	p = createplayers(players)
+	string = '{:10}\t{}\t{}\t{}\t\n'.format('Player', 'Money', 'Investor', 'Biggest shareholder')
+	for player in p.keys():
+		string += '{:10}\t{}\t{}\t{}\t\n'.format(player, p[player]['Money'], p[player]['Investor'], ', '.join(sp for sp in p[player]['ControlsSuperpower']))
+	print string
+
 
 def printbonds():
 	Superpowers = ['Russia', 'China', 'India', 'Brazil', 'USA', 'Europe']
@@ -85,7 +102,7 @@ def printmap():
 
 	string = '{:10}\t{:10}\t{:10}\t{:5}\t{:5}\t{:20}\n'.format('Area', 'Controlled By', 'Home City', 'Tanks', 'Boats', 'Connected to')
 	for area in map.keys():
-		string += '{:10}\t{:10}\t{:10}\t{:5}\t{:5}\t{:20}\n'.format(area, map[area]['ControledBy'], map[area]['HomeCountry'], map[area]['Tanks'], map[area]['Boats'], map[area]['ConnectedTo'])
+		string += '{:10}\t{:10}\t{:10}\t{:5}\t{:5}\t{:20}\n'.format(area, map[area]['ControledBy'], map[area]['HomeCountry'], map[area]['Tanks'], map[area]['Boats'], ', '.join(connection for connection in map[area]['ConnectedTo']))
 	print string
 
 def printsuperpowers():
@@ -113,6 +130,8 @@ if __name__ == '__main__':
 	printmap()
 	print
 	printsuperpowers()
+	print
+	printplayers()
 	print
 
 	
