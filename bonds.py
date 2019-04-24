@@ -35,11 +35,6 @@ def printplayers():
 	players = ['Player1', 'Player2', 'Player3', 'Player4', 'Player5', 'Player6']
 
 
-
-
-
-
-
 def createsuperpowers():
 	naval = {'San Francisco' : False, 'New Orleans' : True, 'New York' : False, 'Fortaleza' : False, 'Rio de Janeiro' : True, 'London' : True, 'Rome' : False, 'Murmansk' : False, 'Vladivostok' : True, 'Shanghai' : True, 'Kolkata' : False, 'Mumbai' : True}
 	army = {'Chicago' : True, 'Manaus' : False, 'Brasillia' : True, 'Paris' : True, 'Berlin' : False, 'Moscow' : True, 'Novasibirsk' : False, 'Urumqi' : False, 'Chongging' : False, 'Beijing' : True, 'New Delhi' : True, 'Chennai' : False}
