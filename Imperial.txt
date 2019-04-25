@@ -48,6 +48,39 @@
 
 
 
+Factory
+A nation can build 1 new factory, for producing amries or naval units. Can only be build in own cities, when city is not occupied by foreign forces.
+getsaldo(country)
+getfreebuildingspots(country)
+getoccupiedcities(country)
+buildfactory(area)
+changesaldo(amount, country)
+playerschoice()
+
+
+Production
+Each facotry may produce a army or a naval unit in unoccupied cities. 
+getbuildfactories(country)
+getoccupiedcities(country)
+buildunits(areas)
+playerschoice()
+
+Import
+player can buy upto 3 units for 1 million each and may be placed in cities that are unoccupied. 
+
+
+
+
+Maneuver
+
+Investor
+
+Taxation
+
+
+
+
+
 Bonds = {
 	2 : {
 	'Bonds' : 2,
