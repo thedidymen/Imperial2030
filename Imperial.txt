@@ -62,16 +62,42 @@ Production
 Each facotry may produce a army or a naval unit in unoccupied cities. 
 getbuildfactories(country)
 getoccupiedcities(country)
-buildunits(areas)
+buildunits(area)
 playerschoice()
 
 Import
-player can buy upto 3 units for 1 million each and may be placed in cities that are unoccupied. 
-
+Player can buy upto 3 units for 1 million each and may be placed in cities that are unoccupied. 
+getsaldo(country)
+getoccupiedcities(country)
+getcities(country)
+changesaldo(amount, country)
+buildunits(area)
+playerschoice()
 
 
 
 Maneuver
+Move units, first fleets, than armies. When moving into occupied areas can be done hostile of peacefully. In a peacefull movement every other present nation can decline. Occupy new areas. 
+seaarea(area)
+landarea(area)
+getfleets(country)
+getamries(country)
+getmoveoptions(area)
+getcities(country)
+playerschoice()
+battle(area, player1, player2)
+removeunit(area, player)
+move(area)
+getoccupiedcities(country)
+convoyed(area)
+iscanal(area)
+destroyfactory(area)
+lastfactory(country)
+
+
+
+
+
 
 Investor
 
