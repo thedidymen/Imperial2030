@@ -16,20 +16,20 @@ class area(object):
 
 class sea(area):
 	"""docstring for sea"""
-	def __init__(self, connection, name):
-		super(sea, self).__init__(connection, name)
+	def __init__(self, name, connection, owned=None):
+		super(sea, self).__init__(name, connection)
 		self.boats = []
 
 class land(area):
 	"""docstring for land"""
-	def __init__(self, connection, name):
-		super(land, self).__init__(connection, name)
+	def __init__(self, name, connection):
+		super(land, self).__init__(name, connection)
 		self.tanks = []
 		
 class city(area):
 	"""docstring for city"""
-	def __init__(self, nation, factory, connection, name):
-		super(city, self).__init__(connection, name)
+	def __init__(self, name, connection, nation, factory, owned=None):
+		super(city, self).__init__(name, connection)
 		self.boats = []
 		self.tanks = []
 		self.nation = nation
@@ -38,8 +38,8 @@ class city(area):
 
 class canal(land):
 	"""docstring for canal"""
-	def __init__(self, connection, name):
-		super(canal, self).__init__(connection, name)
+	def __init__(self, name, connection):
+		super(canal, self).__init__(name, connection)
 
 		
 
@@ -58,13 +58,14 @@ class factory(object):
 
 class unit(object):
 	"""docstring for unit"""
-	def __init__(self, friendly):
+	def __init__(self, nation):
 		super(unit, self).__init__()
-		self.friendly = friendly
+		self.nation = nation
+		self.friendly = False
 		self.kind = None
 		self.moved = False
 
-	def __repr__():
+	def __repr__(self):
 		return self.kind
 
 class boat(unit):
@@ -90,7 +91,7 @@ class bond(object):
 		self.share = share
 		self.interest = interest
 
-	def __repr__():
+	def __repr__(self):
 		return "{} bonds of {}".format(self.bonds, self.nation)
 
 
@@ -106,7 +107,7 @@ class entity(object):
 		else:
 			self.bonds = bonds
 	
-	def __repr__():
+	def __repr__(self):
 		return self.name	
 
 
@@ -142,6 +143,47 @@ class game(object):
 
 	def __str__(self):
 		return str(self.players + self.nations + self.areas)
+
+	def getareas(self, areatype):
+		pass
+
+	def getunitmoveoptions(self, unittype):
+		pass
+
+	def getsaldo(self, entity):
+		pass
+
+	def getfreecities(self, nation):
+		pass
+
+	def getfreebuildingspots(self, nation):
+		pass
+
+	def buildfactory(self, area):
+		pass
+
+	def changesaldo(self, entity, amount):
+		pass
+
+	def getbuildfactories(self, nation):
+		pass
+
+	def buildunit(self, area):
+		# perhaps area property or use for import?
+		pass
+
+	def buildunits(self, nation):
+		pass
+
+	def getfleets(self, nation):
+		pass
+
+	def getarmies(self, nation):
+		pass
+
+	
+
+
 
 class creategame(object):
 	"""docstring for creategame"""
@@ -183,6 +225,10 @@ class creategame(object):
 if __name__ == '__main__':
 	g = game()
 	print g
+	print g.players
+	print g.nations
+	print g.areas
+
 		
 
 
