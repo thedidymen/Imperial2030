@@ -181,6 +181,11 @@ class game(object):
 	def getarmies(self, nation):
 		pass
 
+	def destroyfactory(self, area):
+		pass
+
+
+	def convey(self, )
 	
 
 
