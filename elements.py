@@ -57,6 +57,15 @@ class city(area):
 		# copy from sea?
 		return len(self.boats) > 0
 
+	def buildunit(self):
+		if self.factory.isbuild():
+			unit = self.factory.buildunit(self.nation)
+			if isinstance(unit, boat):
+				self.boats.append(unit)
+			if isinstance(unit, tank):
+				self.tanks.append(unit)
+
+
 class canal(land):
 	"""docstring for canal"""
 	def __init__(self, name, connection):
@@ -66,15 +75,14 @@ class canal(land):
 
 class factory(object):
 	"""docstring for factory"""
-	def __init__(self, build, kind):
+	def __init__(self, build):
 		super(factory, self).__init__()
 		self.build = build
-		self.kind = kind
 
 	def __repr__(self):
 		return self.kind
 
-	def buildunit():
+	def buildunit(self):
 		pass
 
 	def isbuild(self):
@@ -82,6 +90,24 @@ class factory(object):
 
 	def build(self):
 		self.build = True
+
+
+class armarent(factory):
+	"""docstring for Armerent"""
+	def __init__(self, build):
+		super(armarent, self).__init__(build)
+
+	def buildunit(self, nation):
+		return tank(nation)
+
+class shipyard(factory):
+	"""docstring for shipyard"""
+	def __init__(self, build):
+		super(shipyard, self).__init__(build)
+
+	def buildunit(self, nation):
+		return boat(nation)
+
 
 class unit(object):
 	"""docstring for unit"""
@@ -97,17 +123,16 @@ class unit(object):
 
 class boat(unit):
 	"""docstring for boat"""
-	def __init__(self):
-		super(boat, self).__init__()
-		self.kind = 'Boat'
+	def __init__(self, nation):
+		super(boat, self).__init__(nation)
 		self.conveyed = False
 
 
 class tank(unit):
 	"""docstring for tank"""
-	def __init__(self):
-		super(tank, self).__init__()
-		self.kind = 'Tank'
+	def __init__(self, nation):
+		super(tank, self).__init__(nation)
+
 
 class bond(object):
 	"""docstring for bond"""
@@ -135,6 +160,9 @@ class entity(object):
 			self.bonds = bonds
 	
 	def __repr__(self):
+		return self.name
+
+	def __str__(self):
 		return self.name
 
 	def getsaldo(self):
@@ -184,7 +212,7 @@ class game(object):
 
 	def getareas(self, nation):
 		'''returns list of areas controlled by nation, including homecities'''
-		return [area for area in self.areas if area.owner() == nation]
+		return [area for area in self.areas if area.owner() == str(nation)]
 
 	def getfleets(self, nation):
 		'''returns list of areas controlled by nation which has boats, including homecities'''
@@ -199,7 +227,7 @@ class game(object):
 	def getareamoveoptions(self, area, areatype=None):
 		'''returns list of area objects with possible destinations from current area. With areatype it is possible to make sub selection'''
 		if areatype != None:
-			[dest for dest in self.areas if dest in area.getareamoveoptions() if type(dest)==areatype]
+			[dest for dest in self.areas if dest in area.getareamoveoptions() if isinstance(dest, areatype)]
 		return [dest for dest in self.areas if dest in area.getareamoveoptions()]
 
 		
@@ -269,25 +297,70 @@ class creategame(object):
 		for nation in self.nations:
 			for ci in self.homecities[nation]:
 				if ci in self.navalyard.keys():
-					h.append(city(name=ci, connection=self.connections[ci], factory=factory(kind='Navalyard', build=self.navalyard[ci]), nation=nation, owned=nation))
+					h.append(city(name=ci, connection=self.connections[ci], factory=shipyard(build=self.navalyard[ci]), nation=nation, owned=nation))
 				if ci in self.factory.keys():
-					h.append(city(name=ci, connection=self.connections[ci], factory=factory(kind='Factory', build=self.factory[ci]), nation=nation, owned=nation))
+					h.append(city(name=ci, connection=self.connections[ci], factory=armarent(build=self.factory[ci]), nation=nation, owned=nation))
 		c = [canal(name=area, connection=self.connections[area]) for area in self.canals]
 		return l + s + h + c
 
 if __name__ == '__main__':
 	g = game()
 	print g
+	print "checking players"
 	print g.players
+	print
+	print "checking nations"
 	print g.nations
+	print
+	print "checking areas"
 	print g.areas
 	print
 	for nation in g.nations:
 		print
-		print nation
-		g.getareas(nation)
-		g.getfleets(nation)
-		g.getarmies(nation)
+		print "working on ", nation
+		print
+		print "getting areas of nation"
+		print g.getareas(nation)
+		print "fleet update, pre build"
+		print g.getfleets(nation)
+		print "tank update, pre build"
+		print g.getarmies(nation)
+		print "building tanks and fleets in al possible places"
+		for area in g.getareas(nation):
+			area.buildunit()
+		print "fleet update, post build"
+		print g.getfleets(nation)
+		print g.getareamoveoptions(g.getfleets(nation))
+		print g.getareamoveoptions(g.getfleets(nation), areatype=sea)
+		print "tank update, post build"
+		print g.getarmies(nation)
+		print g.getareamoveoptions(g.getarmies(nation))
+		print g.getareamoveoptions(g.getarmies(nation), areatype=land)
+		print
+		print "{} has {} million".format(nation, nation.getsaldo())
+		nation.changesaldo(30)
+		print "{} has {} million".format(nation, nation.getsaldo())
+		print "nation tries pays 31 million"
+		nation.changesaldo(-31)
+		print "{} has {} million".format(nation, nation.getsaldo())
+	print 
+	print "player stuff"
+	print
+	for player in g.players:
+		print "{} has {} million".format(player, player.getsaldo())
+		player.changesaldo(20)
+		print "{} has {} million".format(player, player.getsaldo())
+		player.changesaldo(-5)
+		print "{} has {} million".format(player, player.getsaldo())
+		print "player tries to pay 30 million"
+		player.changesaldo(-30)
+		print "{} has {} million".format(player, player.getsaldo())
+
+
+
+
+
+
 
 
 		
