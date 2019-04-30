@@ -13,28 +13,49 @@ class area(object):
 	def __repr__(self):
 		return self.name
 
+	def owner(self):
+		return self.owned
+
+	def getareamoveoptions(self):
+		return self.connection
+
 
 class sea(area):
 	"""docstring for sea"""
 	def __init__(self, name, connection, owned=None):
-		super(sea, self).__init__(name, connection)
+		super(sea, self).__init__(name, connection, owned)
 		self.boats = []
+
+	def hasboats(self):
+		return len(self.boats) > 0
 
 class land(area):
 	"""docstring for land"""
-	def __init__(self, name, connection):
-		super(land, self).__init__(name, connection)
+	def __init__(self, name, connection, owned=None):
+		super(land, self).__init__(name, connection, owned)
 		self.tanks = []
+
+	def hastanks(self):
+		return len(self.tanks) > 0
 		
 class city(area):
 	"""docstring for city"""
 	def __init__(self, name, connection, nation, factory, owned=None):
-		super(city, self).__init__(name, connection)
-		self.boats = []
-		self.tanks = []
+		super(city, self).__init__(name, connection, owned)
 		self.nation = nation
 		self.factory = factory
 		self.occupied = False
+		self.tanks = []
+		self.boats = []		
+
+
+	def hastanks(self):
+		# copy from land?
+		return len(self.tanks) > 0
+
+	def hasboats(self):
+		# copy from sea?
+		return len(self.boats) > 0
 
 class canal(land):
 	"""docstring for canal"""
@@ -55,6 +76,12 @@ class factory(object):
 
 	def buildunit():
 		pass
+
+	def isbuild(self):
+		return self.build
+
+	def build(self):
+		self.build = True
 
 class unit(object):
 	"""docstring for unit"""
@@ -108,7 +135,18 @@ class entity(object):
 			self.bonds = bonds
 	
 	def __repr__(self):
-		return self.name	
+		return self.name
+
+	def getsaldo(self):
+		return self.money
+
+	def changesaldo(self, amount):
+		'''returns True if saldo + amount > 0 and gain amount to current saldo, else False and does not gain amount to saldo'''
+		if self.money + amount > 0:
+			self.money += amount
+			return True
+		else: 
+			return False	
 
 
 class nation(entity):
@@ -139,19 +177,33 @@ class game(object):
 			self.nations = cg.createnations()
 			self.areas = cg.createareas()
 		else:
-			print 'no, none default settings implemented.'
+			print 'no none default settings implemented.'
 
 	def __str__(self):
 		return str(self.players + self.nations + self.areas)
 
-	def getareas(self, areatype):
-		pass
+	def getareas(self, nation):
+		'''returns list of areas controlled by nation, including homecities'''
+		return [area for area in self.areas if area.owner() == nation]
 
-	def getunitmoveoptions(self, unittype):
-		pass
+	def getfleets(self, nation):
+		'''returns list of areas controlled by nation which has boats, including homecities'''
+		return [area for area in self.getareas(nation) if area.hasboats()]
 
-	def getsaldo(self, entity):
-		pass
+
+	def getarmies(self, nation):
+		'''returns list of areas controlled by nation which has tanks, including homecities'''
+		return [area for area in self.getareas(nation) if area.hastanks()]
+
+
+	def getareamoveoptions(self, area, areatype=None):
+		'''returns list of area objects with possible destinations from current area. With areatype it is possible to make sub selection'''
+		if areatype != None:
+			[dest for dest in self.areas if dest in area.getareamoveoptions() if type(dest)==areatype]
+		return [dest for dest in self.areas if dest in area.getareamoveoptions()]
+
+		
+
 
 	def getfreecities(self, nation):
 		pass
@@ -162,8 +214,7 @@ class game(object):
 	def buildfactory(self, area):
 		pass
 
-	def changesaldo(self, entity, amount):
-		pass
+
 
 	def getbuildfactories(self, nation):
 		pass
@@ -175,17 +226,14 @@ class game(object):
 	def buildunits(self, nation):
 		pass
 
-	def getfleets(self, nation):
-		pass
 
-	def getarmies(self, nation):
-		pass
 
 	def destroyfactory(self, area):
 		pass
 
 
-	def convey(self, )
+	def convey(self):
+		pass
 	
 
 
@@ -220,10 +268,10 @@ class creategame(object):
 		h = []
 		for nation in self.nations:
 			for ci in self.homecities[nation]:
-				if city in self.navalyard.keys():
-					h.append(city(name=ci, connection=self.connections[ci], factory=factory(kind='Navalyard', build=self.navalyard[ci]), nation=nation))
-				if city in self.factory.keys():
-					h.append(city(name=ci, connection=self.connections[ci], factory=factory(kind='Factory', build=self.factory[ci]), nation=nation))
+				if ci in self.navalyard.keys():
+					h.append(city(name=ci, connection=self.connections[ci], factory=factory(kind='Navalyard', build=self.navalyard[ci]), nation=nation, owned=nation))
+				if ci in self.factory.keys():
+					h.append(city(name=ci, connection=self.connections[ci], factory=factory(kind='Factory', build=self.factory[ci]), nation=nation, owned=nation))
 		c = [canal(name=area, connection=self.connections[area]) for area in self.canals]
 		return l + s + h + c
 
@@ -233,6 +281,14 @@ if __name__ == '__main__':
 	print g.players
 	print g.nations
 	print g.areas
+	print
+	for nation in g.nations:
+		print
+		print nation
+		g.getareas(nation)
+		g.getfleets(nation)
+		g.getarmies(nation)
+
 
 		
 
