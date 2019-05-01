@@ -91,7 +91,7 @@ move(area)
 getoccupiedcities(country)
 convoyed(area)
 iscanal(area)
-destroyfactory(area)
+destroyfactory()
 lastfactory(country)
 
 

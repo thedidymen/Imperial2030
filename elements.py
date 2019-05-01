@@ -1,5 +1,5 @@
 import defaults 
-from random import shuffle
+from random import shuffle, choice
 
 
 class area(object):
@@ -9,8 +9,12 @@ class area(object):
 		self.connection = connection
 		self.owned = owned
 		self.name = name
+		self.units = []
 
 	def __repr__(self):
+		return self.name
+
+	def __str__(self):
 		return self.name
 
 	def owner(self):
@@ -19,51 +23,59 @@ class area(object):
 	def getareamoveoptions(self):
 		return self.connection
 
+	def moveunit(self, other, unittype):
+		'''moves a not moved unit from self to other'''
+		for unitindex in range(len(self.units)):
+			if not self.units[unitindex].notmoved() and isinstance(self.units[unitindex], unittype):
+				print str(other)
+				print other.units
+				other.units.append(self.units.pop(unitindex))
+				print str(other)
+				print other.units
+				break
+
+	def getfleets(self):
+		return [unit for unit in self.units if isinstance(unit, boat)]
+
+	def gettanks(self):
+		return [unit for unit in self.units if isinstance(unit, tank)]
+
 
 class sea(area):
 	"""docstring for sea"""
 	def __init__(self, name, connection, owned=None):
 		super(sea, self).__init__(name, connection, owned)
-		self.boats = []
 
 	def hasboats(self):
-		return len(self.boats) > 0
+		print "poep boat"
+		return len(self.getfleets()) > 0
+
 
 class land(area):
 	"""docstring for land"""
 	def __init__(self, name, connection, owned=None):
 		super(land, self).__init__(name, connection, owned)
-		self.tanks = []
 
 	def hastanks(self):
-		return len(self.tanks) > 0
-		
-class city(area):
+		print "poep tank"
+		return len(self.gettanks()) > 0
+	
+
+class city(land):
 	"""docstring for city"""
 	def __init__(self, name, connection, nation, factory, owned=None):
 		super(city, self).__init__(name, connection, owned)
 		self.nation = nation
 		self.factory = factory
 		self.occupied = False
-		self.tanks = []
-		self.boats = []		
-
-
-	def hastanks(self):
-		# copy from land?
-		return len(self.tanks) > 0
 
 	def hasboats(self):
-		# copy from sea?
-		return len(self.boats) > 0
+		return len(self.getfleets()) > 0
 
 	def buildunit(self):
 		if self.factory.isbuild():
-			unit = self.factory.buildunit(self.nation)
-			if isinstance(unit, boat):
-				self.boats.append(unit)
-			if isinstance(unit, tank):
-				self.tanks.append(unit)
+			self.units.append(self.factory.buildunit(self.nation))
+
 
 
 class canal(land):
@@ -121,17 +133,22 @@ class unit(object):
 	def __repr__(self):
 		return self.kind
 
+	def notmoved(self):
+		return self.moved
+
 class boat(unit):
 	"""docstring for boat"""
 	def __init__(self, nation):
 		super(boat, self).__init__(nation)
 		self.conveyed = False
+		self.kind = 'Boat'
 
 
 class tank(unit):
 	"""docstring for tank"""
 	def __init__(self, nation):
 		super(tank, self).__init__(nation)
+		self.kind = 'Tank'
 
 
 class bond(object):
@@ -227,8 +244,8 @@ class game(object):
 	def getareamoveoptions(self, area, areatype=None):
 		'''returns list of area objects with possible destinations from current area. With areatype it is possible to make sub selection'''
 		if areatype != None:
-			[dest for dest in self.areas if dest in area.getareamoveoptions() if isinstance(dest, areatype)]
-		return [dest for dest in self.areas if dest in area.getareamoveoptions()]
+			return [dest for dest in self.areas if str(dest) in area.getareamoveoptions() if isinstance(dest, areatype)]
+		return [dest for dest in self.areas if str(dest) in area.getareamoveoptions()]
 
 		
 
@@ -325,17 +342,32 @@ if __name__ == '__main__':
 		print g.getfleets(nation)
 		print "tank update, pre build"
 		print g.getarmies(nation)
+		print
 		print "building tanks and fleets in al possible places"
+		print
 		for area in g.getareas(nation):
 			area.buildunit()
 		print "fleet update, post build"
 		print g.getfleets(nation)
-		print g.getareamoveoptions(g.getfleets(nation))
-		print g.getareamoveoptions(g.getfleets(nation), areatype=sea)
+		for area in g.getfleets(nation):
+			print
+			print "from {} all move options: {}".format(area, g.getareamoveoptions(area=area))
+			print "from {} sea move options: {}".format(area, g.getareamoveoptions(area=area, areatype=sea))
+			if len(g.getareamoveoptions(area=area, areatype=sea)) > 0:
+				area.moveunit(choice(g.getareamoveoptions(area=area, areatype=sea)), unittype=boat)
+				print "new locations:"
+				print g.getfleets(nation)
+		print
 		print "tank update, post build"
 		print g.getarmies(nation)
-		print g.getareamoveoptions(g.getarmies(nation))
-		print g.getareamoveoptions(g.getarmies(nation), areatype=land)
+		for area in g.getarmies(nation):
+			print
+			print "from {} all move options: {}".format(area, g.getareamoveoptions(area=area))
+			print "from {} land move options: {}".format(area, g.getareamoveoptions(area=area, areatype=land))
+			if len(g.getareamoveoptions(area=area, areatype=land)) > 0:
+				area.moveunit(choice(g.getareamoveoptions(area=area, areatype=land)), unittype=tank)
+				print "new locations:"
+				print g.getarmies(nation)
 		print
 		print "{} has {} million".format(nation, nation.getsaldo())
 		nation.changesaldo(30)
