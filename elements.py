@@ -23,11 +23,18 @@ class area(object):
 	def getareamoveoptions(self):
 		return self.connection
 
+	# def getnotconveyedboats(self, nation):
+	# 	# a fleet must be at sea to convey
+	# 	return []
+
 
 class sea(area):
 	"""docstring for sea"""
 	def __init__(self, name, connection, owned=None):
 		super(sea, self).__init__(name, connection, owned)
+
+	def getnotconveyedboats(self, nation):
+		return [unit for unit in self.units if not unit.conveyed if unit.nation == nation]
 
 
 class land(area):
@@ -43,7 +50,6 @@ class city(land):
 		self.nation = nation
 		self.factory = factory
 		self.occupied = False
-
 
 	def buildunit(self):
 		'''returns unit if factory is build and area is not occupied'''
@@ -130,11 +136,28 @@ class unit(object):
 		return self.location.getareamoveoptions()
 
 	def move(self, location):
-		if not self.moved and location in self.moveoptions():
+		if not self.moved:
 			self.location.units.remove(self)
 			self.setlocation(location)
 			self.location.units.append(self)
 			self.ismoved()
+
+	def conveyoptions(self, currentpath=None):
+		'''returns dict with eindpoints as key and a list containing a chain of seaareas'''
+		convoypath = {}
+		landingareas = [area for area in self.location.getareamoveoptions() if isinstance(area, land)]
+		seaareas = [area for area in self.moveoptions() if len(area.units) > 0 if isinstance(area, sea)]
+		if currentpath == None:
+			currentpath = []
+		currentpath.append(self.location)
+		for area in landingareas:
+			convoypath[area] = currentpath
+		for area in seaareas:
+			units = area.getnotconveyedboats(self.nation)
+			# lets not go loops on the map
+			if area not in currentpath and len(units) > 0:
+				convoypath.update(units[0].conveyoptions(currentpath))
+		return convoypath
 
 
 class boat(unit):
@@ -147,6 +170,10 @@ class boat(unit):
 	def moveoptions(self):
 		return [a for a in self.location.getareamoveoptions() if isinstance(a, sea)]
 
+	def gainconvey(self):
+		self.conveyed = False
+
+
 
 
 class tank(unit):
@@ -157,6 +184,29 @@ class tank(unit):
 
 	def moveoptions(self):
 		return [a for a in self.location.getareamoveoptions() if isinstance(a, land)]
+
+	def conveyoptions(self):
+		seaareas = [a for a in self.location.getareamoveoptions() if isinstance(a, sea)]
+		conveypath = {}
+		for area in seaareas:
+			units = area.getnotconveyedboats(self.nation)
+			# lets not go loops on the map
+			if len(units) > 0:
+				conveypath.update(units[0].conveyoptions())
+		conveypath.pop(self.location, None)
+		return conveypath
+
+	def move(self, location):
+		if location in self.conveyoptions().keys():
+			for area in self.conveyoptions()[location]:
+				for unit in area.getnotconveyedboats(self.nation):
+					if not unit.conveyed:
+						unit.conveyed = True
+						break
+		super(tank, self).move(location)
+
+
+
 
 
 class bond(object):
@@ -260,6 +310,16 @@ class game(object):
 	def getarmies(self, nation):
 		return [unit for unit in self.units[nation] if isinstance(unit, tank)]
 
+	def gainmovement(self, nation):
+		for unit in self.getfleets(nation):
+			unit.gainmovement()
+		for unit in self.getarmies(nation):
+			unit.gainmovement()
+
+	def gainconvey(self, nation):
+		for unit in self.getfleets(nation):
+			unit.gainconvey()
+
 	# def nationhasfleets(self, nation):
 	# 	return self.getfleets(nation)
 
@@ -361,6 +421,7 @@ if __name__ == '__main__':
 		print g.getarmies(nation)
 		print "building tanks and fleets in al possible places"
 		g.buildunits(nation)
+		g.buildunits(nation)
 		print "fleet status"
 		print g.getfleets(nation)
 		print "army status"
@@ -387,15 +448,28 @@ if __name__ == '__main__':
 			print "currently at:",
 			print army.getlocation()
 
-		for i in range(100):
+		for i in range(200):
 			for fleet in g.getfleets(nation):
+				# print fleet.location, fleet.conveyoptions()
 				pick = choice(fleet.moveoptions())
 				fleet.move(pick)
-				fleet.gainmovement()
 			for army in g.getarmies(nation):
-				pick = choice(army.moveoptions())
-				army.move(pick)
-				army.gainmovement()
+				print
+				print army.location, army.moveoptions(), army.conveyoptions().keys()
+				print "fleets: {}".format([fleet.location for fleet in g.getfleets(nation)])
+				# forced convey
+				if len(army.conveyoptions().keys()) > 0:
+					pick = choice(army.conveyoptions().keys())
+					print pick
+					army.move(pick)
+				# 
+				# convey and normal move
+				# if len(army.moveoptions() + army.conveyoptions().keys()) > 0:
+				# 	pick = choice(army.moveoptions() + army.conveyoptions().keys())
+				# 	print pick
+				# 	army.move(pick)
+			g.gainmovement(nation)
+			g.gainconvey(nation)
 		print "{} has {} million".format(nation, nation.getsaldo())
 		nation.changesaldo(30)
 		print "{} has {} million".format(nation, nation.getsaldo())
