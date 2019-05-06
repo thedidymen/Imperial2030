@@ -1,5 +1,6 @@
 import defaults 
 from random import shuffle, choice
+from collections import Counter
 
 
 class area(object):
@@ -25,6 +26,9 @@ class area(object):
 
 	def getenemyunits(self, nation):
 		return [unit for unit in self.units if unit.nation != nation]
+
+	def unitfreqnation(self):
+		return Counter([unit.nation for unit in self.units])
 
 	# def getnotconveyedboats(self, nation):
 	# 	# a fleet must be at sea to convey
@@ -303,7 +307,7 @@ class game(object):
 
 	def buildunits(self, nation):
 		for area in self.areas:
-			if isinstance(area, city) and area.owned == str(nation):
+			if isinstance(area, city) and area.owned == nation:
 				unit = area.buildunit()
 				if unit != None:
 					self.units[nation].append(unit)
@@ -325,9 +329,34 @@ class game(object):
 			unit.gainconvey()
 
 	def battle(self, unit, enemy):
+		# need to implement check if current area is still owned by current nation. 
+		# for example blue invades an area occupied by green and yellow and red, which is owned
+		# by green. Green gets destroyed by blue. Yellow and red remain. Ownership
+		# should be returned to None
 		self.units[unit.nation].remove(unit)
 		self.units[enemy.nation].remove(enemy)
 		unit.kill(enemy)
+
+	def placingflags(self):
+		for area in self.areas:
+			if len(area.unitfreqnation().keys()) == 1:
+				newnation = area.unitfreqnation().keys()[0]
+				print newnation, type(newnation)
+				print area, type(area)
+				print area.owned
+				if area.owned != None:
+					print area.owned.areas
+				else:
+					print "!!"
+
+
+				if area.owned != None and area.owned != newnation:
+					area.owned.areas.remove(area)
+					area.owned = None
+				if len(newnation.areas) < 15 and area not in newnation.areas:
+					newnation.areas.append(area)
+					area.owned = newnation
+
 
 	# def nationhasfleets(self, nation):
 	# 	return self.getfleets(nation)
@@ -396,9 +425,9 @@ class creategame(object):
 					nationobj = nationob
 			for ci in self.homecities[nation]:
 				if ci in self.navalyard.keys():
-					h.append(city(name=ci, connection=self.connections[ci], factory=shipyard(build=self.navalyard[ci]), nation=nationobj, owned=nation))
+					h.append(city(name=ci, connection=self.connections[ci], factory=shipyard(build=self.navalyard[ci]), nation=nationobj, owned=nationobj))
 				if ci in self.factory.keys():
-					h.append(city(name=ci, connection=self.connections[ci], factory=armarent(build=self.factory[ci]), nation=nationobj, owned=nation))
+					h.append(city(name=ci, connection=self.connections[ci], factory=armarent(build=self.factory[ci]), nation=nationobj, owned=nationobj))
 		c = [canal(name=area, connection=self.connections[area]) for area in self.canals]
 		a = l + s + h + c
 
@@ -484,7 +513,8 @@ if __name__ == '__main__':
 	# 		player.changesaldo(-30)
 	# 		print "{} has {} million".format(player, player.getsaldo())
 
-	for i in range(20):
+	for i in range(200):
+		print
 		for nation in g.nations:
 			g.buildunits(nation)
 			for fleet in g.getfleets(nation):
@@ -493,8 +523,8 @@ if __name__ == '__main__':
 				enemies = fleet.move(pick)
 				if enemies:
 					enemy = choice(enemies)
-					print fleet.location
-					print "killing myself and {} @ {}".format(enemy, enemy.location)
+					# print fleet.location
+					# print "killing myself and {} @ {}".format(enemy, enemy.location)
 					g.battle(fleet, choice(enemies))
 			for army in g.getarmies(nation):
 				# print
@@ -519,11 +549,13 @@ if __name__ == '__main__':
 					# print enemies
 					if enemies:
 						enemy = choice(enemies)
-						print army.location
-						print "killing myself and {} @ {}".format(enemy, enemy.location)
+						# print army.location
+						# print "killing myself and {} @ {}".format(enemy, enemy.location)
 						g.battle(army, choice(enemies))
 			g.gainmovement(nation)
 			g.gainconvey(nation)
+			g.placingflags()
+			print nation, len(nation.areas)
 
 
 
