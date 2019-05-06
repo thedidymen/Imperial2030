@@ -23,6 +23,9 @@ class area(object):
 	def getareamoveoptions(self):
 		return self.connection
 
+	def getenemyunits(self, nation):
+		return [unit for unit in self.units if unit.nation != nation]
+
 	# def getnotconveyedboats(self, nation):
 	# 	# a fleet must be at sea to convey
 	# 	return []
@@ -141,6 +144,12 @@ class unit(object):
 			self.setlocation(location)
 			self.location.units.append(self)
 			self.ismoved()
+			return self.location.getenemyunits(self.nation)
+
+	def kill(self, unit=None):
+		if unit != None:
+			unit.kill()
+		self.location.units.remove(self)
 
 	def conveyoptions(self, currentpath=None):
 		'''returns dict with eindpoints as key and a list containing a chain of seaareas'''
@@ -174,8 +183,6 @@ class boat(unit):
 		self.conveyed = False
 
 
-
-
 class tank(unit):
 	"""docstring for tank"""
 	def __init__(self, nation, location):
@@ -203,10 +210,7 @@ class tank(unit):
 					if not unit.conveyed:
 						unit.conveyed = True
 						break
-		super(tank, self).move(location)
-
-
-
+		return super(tank, self).move(location)
 
 
 class bond(object):
@@ -279,7 +283,7 @@ class game(object):
 			self.players = cg.createplayers()
 			shuffle(self.players)
 			self.nations = cg.createnations()
-			self.areas = cg.createareas()
+			self.areas = cg.createareas(self.nations)
 			self.units = {nation : [] for nation in self.nations}
 		else:
 			print 'no none default settings implemented.'
@@ -319,6 +323,11 @@ class game(object):
 	def gainconvey(self, nation):
 		for unit in self.getfleets(nation):
 			unit.gainconvey()
+
+	def battle(self, unit, enemy):
+		self.units[unit.nation].remove(unit)
+		self.units[enemy.nation].remove(enemy)
+		unit.kill(enemy)
 
 	# def nationhasfleets(self, nation):
 	# 	return self.getfleets(nation)
@@ -376,19 +385,24 @@ class creategame(object):
 	def createnations(self):
 		return [nation(name=natie, bonds=self.createbonds(nation=natie), homeareas=self.homecities[natie]) for natie in self.nations]
 
-	def createareas(self):
+	def createareas(self, nationsobj):
 		l = [land(name=area, connection=self.connections[area]) for area in self.landareas]
 		s = [sea(name=area, connection=self.connections[area]) for area in self.seaareas]
 		h = []
+		# making the nation variable in cities the nationobject, used in game.battle. needs refactoring?
 		for nation in self.nations:
+			for nationob in nationsobj:
+				if nation == str(nationob):
+					nationobj = nationob
 			for ci in self.homecities[nation]:
 				if ci in self.navalyard.keys():
-					h.append(city(name=ci, connection=self.connections[ci], factory=shipyard(build=self.navalyard[ci]), nation=nation, owned=nation))
+					h.append(city(name=ci, connection=self.connections[ci], factory=shipyard(build=self.navalyard[ci]), nation=nationobj, owned=nation))
 				if ci in self.factory.keys():
-					h.append(city(name=ci, connection=self.connections[ci], factory=armarent(build=self.factory[ci]), nation=nation, owned=nation))
+					h.append(city(name=ci, connection=self.connections[ci], factory=armarent(build=self.factory[ci]), nation=nationobj, owned=nation))
 		c = [canal(name=area, connection=self.connections[area]) for area in self.canals]
 		a = l + s + h + c
 
+		# making connections objects instead of strings
 		for area in a:
 			connectionsobj = []
 			for connectto in area.connection:
@@ -402,92 +416,115 @@ class creategame(object):
 
 if __name__ == '__main__':
 	g = game()
-	print g
-	print "checking players"
-	print g.players
-	print
-	print "checking nations"
-	print g.nations
-	print
-	print "checking areas"
-	print g.areas
-	print
-	for nation in g.nations:
-		print
-		print "working on ", nation
-		print "checing fleet status"
-		print g.getfleets(nation)
-		print "checking army status"
-		print g.getarmies(nation)
-		print "building tanks and fleets in al possible places"
-		g.buildunits(nation)
-		g.buildunits(nation)
-		print "fleet status"
-		print g.getfleets(nation)
-		print "army status"
-		print g.getarmies(nation)
-		print 
+	# print g
+	# print "checking players"
+	# print g.players
+	# print
+	# print "checking nations"
+	# print g.nations
+	# print
+	# print "checking areas"
+	# print g.areas
+	# print
+	# for nation in g.nations:
+	# 	print
+	# 	print "working on ", nation
+	# 	print "checing fleet status"
+	# 	print g.getfleets(nation)
+	# 	print "checking army status"
+	# 	print g.getarmies(nation)
+	# 	print "building tanks and fleets in al possible places"
+	# 	g.buildunits(nation)
+	# 	g.buildunits(nation)
+	# 	print "fleet status"
+	# 	print g.getfleets(nation)
+	# 	print "army status"
+	# 	print g.getarmies(nation)
+	# 	print 
 
-		for fleet in g.getfleets(nation):
-			print fleet.getlocation()
-			print "all surrounding areas:"
-			print fleet.moveoptions()
-			pick = choice(fleet.moveoptions())
-			print "randomlocation: " + str(pick)
-			fleet.move(pick)
-			print "currently at:",
-			print fleet.getlocation()
-		print
-		for army in g.getarmies(nation):
-			print army.getlocation()
-			print "all surrounding areas:"
-			print army.moveoptions()
-			pick = choice(army.moveoptions())
-			print "randomlocation: " + str(pick)
-			army.move(pick)
-			print "currently at:",
-			print army.getlocation()
+	# 	for fleet in g.getfleets(nation):
+	# 		print fleet.getlocation()
+	# 		print "all surrounding areas:"
+	# 		print fleet.moveoptions()
+	# 		pick = choice(fleet.moveoptions())
+	# 		print "randomlocation: " + str(pick)
+	# 		enemies = fleet.move(pick)
+	# 		if enemies:
+	# 			g.battle(fleet, choice(enemies))
+	# 		print "currently at:",
+	# 		print fleet.getlocation()
+	# 	print
+	# 	for army in g.getarmies(nation):
+	# 		print army.getlocation()
+	# 		print "all surrounding areas:"
+	# 		print army.moveoptions()
+	# 		pick = choice(army.moveoptions())
+	# 		print "randomlocation: " + str(pick)
+	# 		enemies = army.move(pick)
+	# 		if enemies:
+	# 			g.battle(army, choice(enemies))
+	# 		print "currently at:",
+	# 		print army.getlocation()
+	# 		print "{} has {} million".format(nation, nation.getsaldo())
+	# 		nation.changesaldo(30)
+	# 		print "{} has {} million".format(nation, nation.getsaldo())
+	# 		print "nation tries pays 31 million"
+	# 		nation.changesaldo(-31)
+	# 		print "{} has {} million".format(nation, nation.getsaldo())
+	# 	print 
+	# 	print "player stuff"
+	# 	print
+	# 	for player in g.players:
+	# 		print "{} has {} million".format(player, player.getsaldo())
+	# 		player.changesaldo(20)
+	# 		print "{} has {} million".format(player, player.getsaldo())
+	# 		player.changesaldo(-5)
+	# 		print "{} has {} million".format(player, player.getsaldo())
+	# 		print "player tries to pay 30 million"
+	# 		player.changesaldo(-30)
+	# 		print "{} has {} million".format(player, player.getsaldo())
 
-		for i in range(200):
+	for i in range(20):
+		for nation in g.nations:
+			g.buildunits(nation)
 			for fleet in g.getfleets(nation):
 				# print fleet.location, fleet.conveyoptions()
 				pick = choice(fleet.moveoptions())
-				fleet.move(pick)
+				enemies = fleet.move(pick)
+				if enemies:
+					enemy = choice(enemies)
+					print fleet.location
+					print "killing myself and {} @ {}".format(enemy, enemy.location)
+					g.battle(fleet, choice(enemies))
 			for army in g.getarmies(nation):
-				print
-				print army.location, army.moveoptions(), army.conveyoptions().keys()
-				print "fleets: {}".format([fleet.location for fleet in g.getfleets(nation)])
+				# print
+				# print army.location #, army.moveoptions(), army.conveyoptions().keys()
+				# print "fleets: {}".format([fleet.location for fleet in g.getfleets(nation)])
 				# forced convey
-				if len(army.conveyoptions().keys()) > 0:
-					pick = choice(army.conveyoptions().keys())
-					print pick
-					army.move(pick)
+				# if len(army.conveyoptions().keys()) > 0:
+				# 	pick = choice(army.conveyoptions().keys())
+				# 	# print pick
+				# 	enemies = army.move(pick)
+				# 	if enemies:
+				# 		enemy = choice(enemies)
+				# 		print army.location
+				# 		print "killing myself and {} @ {}".format(enemy, enemy.location)
+				# 		g.battle(army, choice(enemies))
 				# 
 				# convey and normal move
-				# if len(army.moveoptions() + army.conveyoptions().keys()) > 0:
-				# 	pick = choice(army.moveoptions() + army.conveyoptions().keys())
-				# 	print pick
-				# 	army.move(pick)
+				if len(army.moveoptions() + army.conveyoptions().keys()) > 0:
+					pick = choice(army.moveoptions() + army.conveyoptions().keys())
+					# print pick
+					enemies = army.move(pick)
+					# print enemies
+					if enemies:
+						enemy = choice(enemies)
+						print army.location
+						print "killing myself and {} @ {}".format(enemy, enemy.location)
+						g.battle(army, choice(enemies))
 			g.gainmovement(nation)
 			g.gainconvey(nation)
-		print "{} has {} million".format(nation, nation.getsaldo())
-		nation.changesaldo(30)
-		print "{} has {} million".format(nation, nation.getsaldo())
-		print "nation tries pays 31 million"
-		nation.changesaldo(-31)
-		print "{} has {} million".format(nation, nation.getsaldo())
-	print 
-	print "player stuff"
-	print
-	for player in g.players:
-		print "{} has {} million".format(player, player.getsaldo())
-		player.changesaldo(20)
-		print "{} has {} million".format(player, player.getsaldo())
-		player.changesaldo(-5)
-		print "{} has {} million".format(player, player.getsaldo())
-		print "player tries to pay 30 million"
-		player.changesaldo(-30)
-		print "{} has {} million".format(player, player.getsaldo())
+
 
 
 
