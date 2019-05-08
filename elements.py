@@ -3,10 +3,10 @@ from random import shuffle, choice
 from collections import Counter
 
 
-class area(object):
+class Area(object):
 	"""docstring for area"""
 	def __init__(self, name, connection, owned=None):
-		super(area, self).__init__()
+		super(Area, self).__init__()
 		self.connection = connection
 		self.owned = owned
 		self.name = name
@@ -35,25 +35,25 @@ class area(object):
 	# 	return []
 
 
-class sea(area):
+class Sea(Area):
 	"""docstring for sea"""
 	def __init__(self, name, connection, owned=None):
-		super(sea, self).__init__(name, connection, owned)
+		super(Sea, self).__init__(name, connection, owned)
 
 	def getnotconveyedboats(self, nation):
 		return [unit for unit in self.units if not unit.conveyed if unit.nation == nation]
 
 
-class land(area):
+class Land(Area):
 	"""docstring for land"""
 	def __init__(self, name, connection, owned=None):
-		super(land, self).__init__(name, connection, owned)
+		super(Land, self).__init__(name, connection, owned)
 
 
-class city(land):
+class City(Land):
 	"""docstring for city"""
 	def __init__(self, name, connection, nation, factory, owned=None):
-		super(city, self).__init__(name, connection, owned)
+		super(City, self).__init__(name, connection, owned)
 		self.nation = nation
 		self.factory = factory
 		self.occupied = False
@@ -64,23 +64,23 @@ class city(land):
 			return self.factory.buildunit(self.nation, self)
 
 
-class canal(land):
+class Canal(Land):
 	"""docstring for canal"""
 	def __init__(self, name, connection):
-		super(canal, self).__init__(name, connection)
+		super(Canal, self).__init__(name, connection)
 
 		
-class factory(object):
+class Factory(object):
 	"""docstring for factory"""
 	def __init__(self, build):
-		super(factory, self).__init__()
+		super(Factory, self).__init__()
 		self.build = build
 
 	def __repr__(self):
 		return self.kind
 
 	def buildunit(self):
-		pass
+		return None
 
 	def isbuild(self):
 		return self.build
@@ -89,32 +89,32 @@ class factory(object):
 		self.build = True
 
 
-class armarent(factory):
+class Armarent(Factory):
 	"""docstring for Armerent"""
 	def __init__(self, build):
-		super(armarent, self).__init__(build)
+		super(Armarent, self).__init__(build)
 
 	def buildunit(self, nation, location):
-		unit = tank(nation, location)
+		unit = Tank(nation, location)
 		location.units.append(unit)
 		return unit
 
 
-class shipyard(factory):
+class Shipyard(Factory):
 	"""docstring for shipyard"""
 	def __init__(self, build):
-		super(shipyard, self).__init__(build)
+		super(Shipyard, self).__init__(build)
 
 	def buildunit(self, nation, location):
-		unit = boat(nation, location)
+		unit = Boat(nation, location)
 		location.units.append(unit)
 		return unit
 
 
-class unit(object):
+class Unit(object):
 	"""docstring for unit"""
 	def __init__(self, nation, location):
-		super(unit, self).__init__()
+		super(Unit, self).__init__()
 		self.nation = nation
 		self.friendly = False
 		self.kind = None
@@ -158,8 +158,8 @@ class unit(object):
 	def conveyoptions(self, currentpath=None):
 		'''returns dict with eindpoints as key and a list containing a chain of seaareas'''
 		convoypath = {}
-		landingareas = [area for area in self.location.getareamoveoptions() if isinstance(area, land)]
-		seaareas = [area for area in self.moveoptions() if len(area.units) > 0 if isinstance(area, sea)]
+		landingareas = [area for area in self.location.getareamoveoptions() if isinstance(area, Land)]
+		seaareas = [area for area in self.moveoptions() if len(area.units) > 0 if isinstance(area, Sea)]
 		if currentpath == None:
 			currentpath = []
 		currentpath.append(self.location)
@@ -173,31 +173,31 @@ class unit(object):
 		return convoypath
 
 
-class boat(unit):
+class Boat(Unit):
 	"""docstring for boat"""
 	def __init__(self, nation, location):
-		super(boat, self).__init__(nation, location)
+		super(Boat, self).__init__(nation, location)
 		self.conveyed = False
 		self.kind = 'Boat'
 
 	def moveoptions(self):
-		return [a for a in self.location.getareamoveoptions() if isinstance(a, sea)]
+		return [a for a in self.location.getareamoveoptions() if isinstance(a, Sea)]
 
 	def gainconvey(self):
 		self.conveyed = False
 
 
-class tank(unit):
+class Tank(Unit):
 	"""docstring for tank"""
 	def __init__(self, nation, location):
-		super(tank, self).__init__(nation, location)
+		super(Tank, self).__init__(nation, location)
 		self.kind = 'Tank'
 
 	def moveoptions(self):
-		return [a for a in self.location.getareamoveoptions() if isinstance(a, land)]
+		return [a for a in self.location.getareamoveoptions() if isinstance(a, Land)]
 
 	def conveyoptions(self):
-		seaareas = [a for a in self.location.getareamoveoptions() if isinstance(a, sea)]
+		seaareas = [a for a in self.location.getareamoveoptions() if isinstance(a, Sea)]
 		conveypath = {}
 		for area in seaareas:
 			units = area.getnotconveyedboats(self.nation)
@@ -208,19 +208,23 @@ class tank(unit):
 		return conveypath
 
 	def move(self, location):
+		if location in self.moveoptions():
+			return super(Tank, self).move(location)
 		if location in self.conveyoptions().keys():
+			b = False
 			for area in self.conveyoptions()[location]:
 				for unit in area.getnotconveyedboats(self.nation):
 					if not unit.conveyed:
 						unit.conveyed = True
+						print "Conveyed", location, location.units
 						break
-		return super(tank, self).move(location)
+			return super(Tank, self).move(location)
 
 
-class bond(object):
+class Bond(object):
 	"""docstring for bond"""
 	def __init__(self, share, interest, nation, owner='bank'):
-		super(bond, self).__init__()
+		super(Bond, self).__init__()
 		self.owner = owner
 		self.nation = nation
 		self.share = share
@@ -230,10 +234,10 @@ class bond(object):
 		return "{} bonds of {}".format(self.bonds, self.nation)
 
 
-class entity(object):
+class Entity(object):
 	"""docstring for entity"""
 	def __init__(self, name, bonds=None):
-		super(entity, self).__init__()
+		super(Entity, self).__init__()
 		self.name = name
 		self.money = 0
 		if bonds == None:
@@ -259,29 +263,29 @@ class entity(object):
 			return False	
 
 
-class nation(entity):
+class Nation(Entity):
 	"""docstring for nation"""
 	def __init__(self, homeareas, name, bonds):
-		super(nation, self).__init__(name, bonds)
+		super(Nation, self).__init__(name, bonds)
 		self.homeareas = homeareas
 		self.powerlvl = 0
 		self.areas = []
 		self.controlledby = None
 
 
-class player(entity):
+class Player(Entity):
 	"""docstring for player"""
 	def __init__(self, name):
-		super(player, self).__init__(name)
+		super(Player, self).__init__(name)
 		self.investor = False
 		self.swissbank = False
 		self.controlsnation = []
 
 
-class game(object):
+class Game(object):
 	"""docstring for game"""
 	def __init__(self, default=True):
-		super(game, self).__init__()
+		super(Game, self).__init__()
 		if default:
 			cg = creategame()
 			self.players = cg.createplayers()
@@ -297,26 +301,30 @@ class game(object):
 
 	def getareas(self, nation):
 		'''returns list of areas controlled by nation, including homecities'''
-		return [area for area in self.areas if area.owner() == str(nation)]
+		# return [area for area in self.areas if area.owner() == str(nation)]
+		return [area for area in self.areas if area.owner() == nation]
 
 	def getareamoveoptions(self, area, areatype=None):
 		'''returns list of area objects with possible destinations from current area. With areatype it is possible to make sub selection'''
 		if areatype != None:
-			return [dest for dest in self.areas if str(dest) in area.getareamoveoptions() if isinstance(dest, areatype)]
-		return [dest for dest in self.areas if str(dest) in area.getareamoveoptions()]
+		# 	return [dest for dest in self.areas if str(dest) in area.getareamoveoptions() if isinstance(dest, areatype)]
+		# return [dest for dest in self.areas if str(dest) in area.getareamoveoptions()]
+			return [dest for dest in self.areas if dest in area.getareamoveoptions() if isinstance(dest, areatype)]
+		return [dest for dest in self.areas if dest in area.getareamoveoptions()]
 
 	def buildunits(self, nation):
+		# optimize... use nation.homecities?
 		for area in self.areas:
-			if isinstance(area, city) and area.owned == nation:
+			if isinstance(area, City) and area.owned == nation:
 				unit = area.buildunit()
 				if unit != None:
 					self.units[nation].append(unit)
 
 	def getfleets(self, nation):
-		return [unit for unit in self.units[nation] if isinstance(unit, boat)]
+		return [unit for unit in self.units[nation] if isinstance(unit, Boat)]
 
 	def getarmies(self, nation):
-		return [unit for unit in self.units[nation] if isinstance(unit, tank)]
+		return [unit for unit in self.units[nation] if isinstance(unit, Tank)]
 
 	def gainmovement(self, nation):
 		for unit in self.getfleets(nation):
@@ -341,15 +349,6 @@ class game(object):
 		for area in self.areas:
 			if len(area.unitfreqnation().keys()) == 1:
 				newnation = area.unitfreqnation().keys()[0]
-				print newnation, type(newnation)
-				print area, type(area)
-				print area.owned
-				if area.owned != None:
-					print area.owned.areas
-				else:
-					print "!!"
-
-
 				if area.owned != None and area.owned != newnation:
 					area.owned.areas.remove(area)
 					area.owned = None
@@ -406,17 +405,17 @@ class creategame(object):
 		self.players = defaults.players
 
 	def createplayers(self):
-		return [player(name=p) for p in self.players]
+		return [Player(name=p) for p in self.players]
 
 	def createbonds(self, nation):
-		return [bond(share=b, interest=self.bonds[b], nation=nation) for b in self.bonds.keys()]
+		return [Bond(share=b, interest=self.bonds[b], nation=nation) for b in self.bonds.keys()]
 
 	def createnations(self):
-		return [nation(name=natie, bonds=self.createbonds(nation=natie), homeareas=self.homecities[natie]) for natie in self.nations]
+		return [Nation(name=natie, bonds=self.createbonds(nation=natie), homeareas=self.homecities[natie]) for natie in self.nations]
 
 	def createareas(self, nationsobj):
-		l = [land(name=area, connection=self.connections[area]) for area in self.landareas]
-		s = [sea(name=area, connection=self.connections[area]) for area in self.seaareas]
+		l = [Land(name=area, connection=self.connections[area]) for area in self.landareas]
+		s = [Sea(name=area, connection=self.connections[area]) for area in self.seaareas]
 		h = []
 		# making the nation variable in cities the nationobject, used in game.battle. needs refactoring?
 		for nation in self.nations:
@@ -425,10 +424,12 @@ class creategame(object):
 					nationobj = nationob
 			for ci in self.homecities[nation]:
 				if ci in self.navalyard.keys():
-					h.append(city(name=ci, connection=self.connections[ci], factory=shipyard(build=self.navalyard[ci]), nation=nationobj, owned=nationobj))
+					h.append(City(name=ci, connection=self.connections[ci], factory=Shipyard(build=self.navalyard[ci]), nation=nationobj, owned=nationobj))
+					nationobj.areas.append(h[-1])
 				if ci in self.factory.keys():
-					h.append(city(name=ci, connection=self.connections[ci], factory=armarent(build=self.factory[ci]), nation=nationobj, owned=nationobj))
-		c = [canal(name=area, connection=self.connections[area]) for area in self.canals]
+					h.append(City(name=ci, connection=self.connections[ci], factory=Armarent(build=self.factory[ci]), nation=nationobj, owned=nationobj))
+					nationobj.areas.append(h[-1])
+		c = [Canal(name=area, connection=self.connections[area]) for area in self.canals]
 		a = l + s + h + c
 
 		# making connections objects instead of strings
@@ -444,7 +445,7 @@ class creategame(object):
 		return l + s + h + c
 
 if __name__ == '__main__':
-	g = game()
+	g = Game()
 	# print g
 	# print "checking players"
 	# print g.players
@@ -517,15 +518,28 @@ if __name__ == '__main__':
 		print
 		for nation in g.nations:
 			g.buildunits(nation)
+			for area in g.areas:
+				if area.units:
+					for u in area.units:
+						if u.nation == nation:
+							if not u in g.units[nation]:
+								print u, u.location
+								print area
+								print nation
+			print
+			print "units checked"
+			print
+
 			for fleet in g.getfleets(nation):
 				# print fleet.location, fleet.conveyoptions()
 				pick = choice(fleet.moveoptions())
 				enemies = fleet.move(pick)
 				if enemies:
 					enemy = choice(enemies)
-					# print fleet.location
-					# print "killing myself and {} @ {}".format(enemy, enemy.location)
-					g.battle(fleet, choice(enemies))
+					print "fleet @", fleet.location, army.nation
+					print "killing myself and {} @ {} from {}".format(enemy, enemy.location, enemy.nation)
+					print "enemies ", [u.nation for u in army.location.units]
+					g.battle(unit=fleet, enemy=enemy)
 			for army in g.getarmies(nation):
 				# print
 				# print army.location #, army.moveoptions(), army.conveyoptions().keys()
@@ -539,7 +553,7 @@ if __name__ == '__main__':
 				# 		enemy = choice(enemies)
 				# 		print army.location
 				# 		print "killing myself and {} @ {}".format(enemy, enemy.location)
-				# 		g.battle(army, choice(enemies))
+				# 		g.battle(army, enemy)
 				# 
 				# convey and normal move
 				if len(army.moveoptions() + army.conveyoptions().keys()) > 0:
@@ -549,9 +563,10 @@ if __name__ == '__main__':
 					# print enemies
 					if enemies:
 						enemy = choice(enemies)
-						# print army.location
-						# print "killing myself and {} @ {}".format(enemy, enemy.location)
-						g.battle(army, choice(enemies))
+						print "army @", army.location, army.nation
+						print "killing myself and {} @ {} from {}".format(enemy, enemy.location, enemy.nation)
+						print "enemies ", [u.nation for u in army.location.units]
+						g.battle(unit=army, enemy=enemy)
 			g.gainmovement(nation)
 			g.gainconvey(nation)
 			g.placingflags()
