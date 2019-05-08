@@ -25,6 +25,9 @@ class Area(object):
 		return self.connection
 
 	def getenemyunits(self, nation):
+		print nation
+		for unit in self.units:
+			print unit, unit.nation
 		return [unit for unit in self.units if unit.nation != nation]
 
 	def unitfreqnation(self):
