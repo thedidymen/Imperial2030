@@ -62,8 +62,7 @@ class City(Land):
 	def buildunit(self):
 		'''returns unit if factory is build and area is not occupied'''
 		if self.factory.isbuild() and not self.occupied:
-			u = self.factory.buildunit(self.nation, self)
-			return u
+			return self.factory.buildunit(self.nation, self)
 
 
 class Canal(Land):
@@ -279,6 +278,25 @@ class Nation(Entity):
 		self.areas = []
 		self.controlledby = None
 
+	def numberofflags(self):
+		number = 0
+		for area in self.areas:
+			if not isinstance(area, City):
+				number += 1
+		return number
+
+	def occupyingcities(self):
+		# If a city only has enemy units of the unfriendly kind, the city becomes occupied.
+		pass
+
+	def placingflags(self):
+		''''''
+		# needs to change the owner of an area, if only one nation has units in the area. 
+		# Also the number of flags should not exceed 15. Cities should not count to this number.
+		
+		# numberofflags...
+		pass
+
 
 class Player(Entity):
 	"""docstring for player"""
@@ -325,6 +343,7 @@ class Game(object):
 			if isinstance(area, City) and area.owned == nation:
 				unit = area.buildunit()
 				if unit != None:
+					print "building unit @ {}".format(unit.location)
 					self.units[nation].append(unit)
 
 	def getfleets(self, nation):
@@ -352,48 +371,10 @@ class Game(object):
 		self.units[enemy.nation].remove(enemy)
 		unit.kill(enemy)
 
-	def placingflags(self):
-		for area in self.areas:
-			if len(area.unitfreqnation().keys()) == 1:
-				newnation = area.unitfreqnation().keys()[0]
-				if area.owned != None and area.owned != newnation:
-					area.owned.areas.remove(area)
-					area.owned = None
-				if len(newnation.areas) < 15 and area not in newnation.areas:
-					newnation.areas.append(area)
-					area.owned = newnation
+	def getareatype(self):
+		pass
 
 
-	# def nationhasfleets(self, nation):
-	# 	return self.getfleets(nation)
-
-	# def nationhasarmies(self, nation):
-	# 	return self.getarmies(nation)
-
-	# def getfreecities(self, nation):
-	# 	pass
-
-	# def getfreebuildingspots(self, nation):
-	# 	pass
-
-	# def buildfactory(self, area):
-	# 	pass
-
-	# def getbuildfactories(self, nation):
-	# 	pass
-
-	# def buildunit(self, area):
-	# 	# perhaps area property or use for import?
-	# 	pass
-
-
-
-	# def destroyfactory(self, area):
-	# 	pass
-
-
-	# def convey(self):
-	# 	pass
 	
 
 class creategame(object):
@@ -569,7 +550,6 @@ if __name__ == '__main__':
 			# g.placingflags()
 
 	def unitcheck(game):
-
 		for nation in game.nations:
 			areaunits = []
 			gameunits = []
@@ -579,7 +559,7 @@ if __name__ == '__main__':
 				gameunits = game.units[nation]
 			for areaunit in areaunits:
 				if not areaunit in gameunits:
-					print "lost unit: ", areaunit
+					print "lost unit: {} @ {}".format(areaunit, areaunit.location)
 					print "nation: ", areaunit.nation
 
 
@@ -597,8 +577,16 @@ if __name__ == '__main__':
 	print "playing {} rounds".format(n)
 	for i in range(n):
 		for nation in g.nations:
-			g.buildunits(nation)
+			print 
 			print "current round: {}".format(i)
+			print
+			print "current nation: {}".format(nation)
+			print "checking units prebuild"
+			unitcheck(g)
+			print "building units"
+			g.buildunits(nation)
+			print "checking units postbuild"
+			unitcheck(g)
 			print
 			print "fleet movement"
 			for fleet in g.getfleets(nation):
