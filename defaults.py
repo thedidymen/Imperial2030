@@ -9,7 +9,7 @@ homecities = {
 			'Europe' : ['Paris', 'London', 'Berlin', 'Rome'], 
 			'Russia' : ['Moscow', 'Murmansk', 'Novasibirsk', 'Vladivostok'], 
 			'China' : ['Urumqi', 'Beijing', 'Chongging', 'Shanghai'], 
-			'India' : ['New Delhi', 'Kolkata', 'Numbai', 'Chennai'], 
+			'India' : ['New Delhi', 'Kolkata', 'Mumbai', 'Chennai'], 
 			'Brazil' : ['Manaus', 'Fortaleza', 'Brasillia', 'Rio de Janeiro']}
 navalyard = {'San Francisco' : False, 'New Orleans' : True, 'New York' : False, 'Fortaleza' : False, 'Rio de Janeiro' : True, 'London' : True, 'Rome' : False, 'Murmansk' : False, 'Vladivostok' : True, 'Shanghai' : True, 'Kolkata' : False, 'Mumbai' : True}
 factory = {'Chicago' : True, 'Manaus' : False, 'Brasillia' : True, 'Paris' : True, 'Berlin' : False, 'Moscow' : True, 'Novasibirsk' : False, 'Urumqi' : False, 'Chongging' : False, 'Beijing' : True, 'New Delhi' : True, 'Chennai' : False}
