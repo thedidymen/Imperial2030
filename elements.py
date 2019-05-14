@@ -22,6 +22,14 @@ class Area(object):
 	def owner(self):
 		return self.owned
 
+	def changeowner(self, newowner):
+		if self.owner() != newowner and self.owner() != None:
+			self.owner().areas.remove(self)
+			self.owned = None
+		if self.owner() != newowner and newowner.numberofflags() < 15:
+			newowner.areas.append(self)
+			self.owned = newowner
+
 	def getareamoveoptions(self):
 		return self.connection
 
@@ -30,10 +38,6 @@ class Area(object):
 
 	def unitfreqnation(self):
 		return Counter([unit.nation for unit in self.units])
-
-	# def getnotconveyedboats(self, nation):
-	# 	# a fleet must be at sea to convey
-	# 	return []
 
 
 class Sea(Area):
@@ -64,11 +68,26 @@ class City(Land):
 		if self.factory.isbuild() and not self.occupied:
 			return self.factory.buildunit(self.nation, self)
 
+	def changeowner(self, newowner):
+		if newowner == self.owner():
+			self.occupied = False
+			return
+		self.occupied = True
 
-class Canal(Land):
+
+class Canal(object):
 	"""docstring for canal"""
-	def __init__(self, name, connection):
+	def __init__(self, name, connection, controlledby):
 		super(Canal, self).__init__(name, connection)
+		self.name = name
+		self.connection = connection
+		self.controlledby = controlledby
+
+	def __repr__(self):
+		return self.name
+
+	def __str__(self):
+		return self.name
 
 		
 class Factory(object):
@@ -127,7 +146,6 @@ class Unit(object):
 		Unit.number += 1
 		self.number = Unit.number
 
-
 	def __repr__(self):
 		return self.kind + " " + str(self.number) + " " + str(self.nation)
 
@@ -161,6 +179,7 @@ class Unit(object):
 		if unit != None:
 			unit.kill()
 		self.location.units.remove(self)
+
 
 	def conveyoptions(self, currentpath=None):
 		'''returns dict with eindpoints as key and a list containing a chain of seaareas'''
@@ -285,18 +304,6 @@ class Nation(Entity):
 				number += 1
 		return number
 
-	def occupyingcities(self):
-		# If a city only has enemy units of the unfriendly kind, the city becomes occupied.
-		pass
-
-	def placingflags(self):
-		''''''
-		# needs to change the owner of an area, if only one nation has units in the area. 
-		# Also the number of flags should not exceed 15. Cities should not count to this number.
-		
-		# numberofflags...
-		pass
-
 
 class Player(Entity):
 	"""docstring for player"""
@@ -343,7 +350,6 @@ class Game(object):
 			if isinstance(area, City) and area.owned == nation:
 				unit = area.buildunit()
 				if unit != None:
-					print "building unit @ {}".format(unit.location)
 					self.units[nation].append(unit)
 
 	def getfleets(self, nation):
@@ -363,19 +369,39 @@ class Game(object):
 			unit.gainconvey()
 
 	def battle(self, unit, enemy):
+		location = unit.location
+		self.units[unit.nation].remove(unit)
+		self.units[enemy.nation].remove(enemy)
+		unit.kill(enemy)
 		# need to implement check if current area is still owned by current nation. 
 		# for example blue invades an area occupied by green and yellow and red, which is owned
 		# by green. Green gets destroyed by blue. Yellow and red remain. Ownership
 		# should be returned to None
-		self.units[unit.nation].remove(unit)
-		self.units[enemy.nation].remove(enemy)
-		unit.kill(enemy)
+		if location.unitfreqnation()[location.owner()] == 0:
+			location.owned = None
 
-	def getareatype(self):
-		pass
+	def getareatype(self, type):
+		return [area for area in self.areas if isinstance(area, type)]
 
+	def claimareas(self):
+		# needs to change the owner of an area, if only one nation has units in the area. 
+		# Also the number of flags should not exceed 15. Cities should not count to this number.
 
-	
+		# loop over sea and land areas, exculde cities. An exception that occurs with 4 nations is handled in game.battle().
+		for area in self.areas:
+			# only change area when 1 nation is present. 
+			areaunitownerlist = area.unitfreqnation().keys()
+			if len(areaunitownerlist) == 1:
+				newowner = areaunitownerlist[0]
+				area.changeowner(newowner)
+			elif isinstance(area, City) and len(areaunitownerlist) > 1:
+				# this probably needs work
+				if area.owner not in areaunitownerlist:
+					 # any nation if own not present....
+					area.changeowner(areaunitownerlist[0])
+				else:
+					area.changeowner(area.owner())
+
 
 class creategame(object):
 	"""docstring for creategame"""
@@ -417,8 +443,8 @@ class creategame(object):
 				if ci in self.factory.keys():
 					h.append(City(name=ci, connection=self.connections[ci], factory=Armarent(build=self.factory[ci]), nation=nationobj, owned=nationobj))
 					nationobj.areas.append(h[-1])
-		c = [Canal(name=area, connection=self.connections[area]) for area in self.canals]
-		a = l + s + h + c
+		# c = [Canal(name=area, connection=self.connections[area]) for area in self.canals]
+		a = l + s + h
 
 		# making connections objects instead of strings
 		for area in a:
@@ -431,6 +457,10 @@ class creategame(object):
 			area.connection = connectionsobj
 
 		return l + s + h + c
+
+	def createcanals(self, canals):
+		return [Canal(name=area, connection=self.connections[area]) for area in self.canals]
+
 
 if __name__ == '__main__':
 	print "setting up game"
@@ -549,73 +579,117 @@ if __name__ == '__main__':
 			# g.gainconvey(nation)
 			# g.placingflags()
 
-	def unitcheck(game):
-		for nation in game.nations:
-			areaunits = []
-			gameunits = []
-			for area in game.areas:
-				areaunits += [unit for unit in area.units if unit.nation == nation]
-			if game.units[nation]:
-				gameunits = game.units[nation]
-			for areaunit in areaunits:
-				if not areaunit in gameunits:
-					print "lost unit: {} @ {}".format(areaunit, areaunit.location)
-					print "nation: ", areaunit.nation
+	# def unitcheck(game):
+	# 	for nation in game.nations:
+	# 		areaunits = []
+	# 		gameunits = []
+	# 		for area in game.areas:
+	# 			areaunits += [unit for unit in area.units if unit.nation == nation]
+	# 		if game.units[nation]:
+	# 			gameunits = game.units[nation]
+	# 		for areaunit in areaunits:
+	# 			if not areaunit in gameunits:
+	# 				print "lost unit: {} @ {}".format(areaunit, areaunit.location)
+	# 				print "nation: ", areaunit.nation
+
+
+	# n =  200
+	# for nation in g.nations:
+	# 	print 
+	# 	print "current nation: {}".format(nation)
+	# 	print "checking units prebuild"
+	# 	unitcheck(g)
+	# 	print "building units"
+	# 	g.buildunits(nation)
+	# 	print "checking units postbuild"
+	# 	unitcheck(g)
+	# 	print
+	# print "playing {} rounds".format(n)
+	# for i in range(n):
+	# 	for nation in g.nations:
+	# 		print 
+	# 		print "current round: {}".format(i)
+	# 		print
+	# 		print "current nation: {}".format(nation)
+	# 		print "checking units prebuild"
+	# 		unitcheck(g)
+	# 		print "building units"
+	# 		g.buildunits(nation)
+	# 		print "checking units postbuild"
+	# 		unitcheck(g)
+	# 		print
+	# 		print "fleet movement"
+	# 		for fleet in g.getfleets(nation):
+	# 			print "checking units prepick/fleet.moveoptions"
+	# 			unitcheck(g)
+	# 			print str(fleet) + " from " + str(fleet.nation)
+	# 			print "fleet located @ {}".format(fleet.location)
+	# 			pick = choice(fleet.moveoptions())
+	# 			print "checking units postpick/fleet.moveoptions"
+	# 			print "premove"
+	# 			unitcheck(g)
+	# 			print "moving to {}".format(pick)
+	# 			enemies = fleet.move(pick)
+	# 			print "checking units postmove/ prepick enemy"
+	# 			unitcheck(g)
+	# 			print "moved to {}".format(fleet.location)
+	# 			if enemies:
+	# 				print "enemies at current location {}".format([str(u) + " from " + str(u.nation) for u in enemies])
+	# 				enemy = choice(enemies)
+	# 				print "checking units postpick enemy/prebattle"
+	# 				unitcheck(g)
+	# 				print "will battle {}".format(str(enemy) + " from " + str(enemy.nation) + " @ " + str(enemy.location))
+	# 				print "enemy exits in game.units: {}".format(enemy in g.units[nation])
+	# 				print "fleet exits in game.units: {}".format(fleet in g.units[nation])
+	# 				g.battle(unit=fleet, enemy=enemy)
+	# 				print "checking units postbattle"
+	# 				unitcheck(g)
+	# 			print
+	# 		print
+	# 		for army in g.getarmies(nation):
+	# 			if len(army.moveoptions() + army.conveyoptions().keys()) > 0:
+	# 				pick = choice(army.moveoptions() + army.conveyoptions().keys())
+	# 				enemies = army.move(pick)
+	# 				if enemies:
+	# 					enemy = choice(enemies)
+	# 					g.battle(unit=army, enemy=enemy)
+	# 		print "checking prereset next round"
+	# 		unitcheck(g)
+	# 		print "Reseting movement"
+	# 		g.gainmovement(nation)
+	# 		print "checking units postpick enemy"
+	# 		unitcheck(g)
+	# 		print "resetting convoyment"
+	# 		g.gainconvey(nation)
+	# 		print "checking units postpick enemy"
+	# 		unitcheck(g)
+	# 		print "gaining areas"
+	# 		g.claimareas()
+	# 		print "checking units postpick enemy"
+	# 		unitcheck(g)
+	# 		print
+	# 		print
+
+
 
 
 	n =  200
 	for nation in g.nations:
-		print 
-		print "current nation: {}".format(nation)
-		print "checking units prebuild"
-		unitcheck(g)
-		print "building units"
 		g.buildunits(nation)
-		print "checking units postbuild"
-		unitcheck(g)
 		print
 	print "playing {} rounds".format(n)
 	for i in range(n):
+		print 
+		print "current round: {}".format(i)
+		print
 		for nation in g.nations:
-			print 
-			print "current round: {}".format(i)
-			print
-			print "current nation: {}".format(nation)
-			print "checking units prebuild"
-			unitcheck(g)
-			print "building units"
 			g.buildunits(nation)
-			print "checking units postbuild"
-			unitcheck(g)
-			print
-			print "fleet movement"
 			for fleet in g.getfleets(nation):
-				print "checking units prepick/fleet.moveoptions"
-				unitcheck(g)
-				print str(fleet) + " from " + str(fleet.nation)
-				print "fleet located @ {}".format(fleet.location)
 				pick = choice(fleet.moveoptions())
-				print "checking units postpick/fleet.moveoptions"
-				print "premove"
-				unitcheck(g)
-				print "moving to {}".format(pick)
 				enemies = fleet.move(pick)
-				print "checking units postmove/ prepick enemy"
-				unitcheck(g)
-				print "moved to {}".format(fleet.location)
 				if enemies:
-					print "enemies at current location {}".format([str(u) + " from " + str(u.nation) for u in enemies])
 					enemy = choice(enemies)
-					print "checking units postpick enemy/prebattle"
-					unitcheck(g)
-					print "will battle {}".format(str(enemy) + " from " + str(enemy.nation) + " @ " + str(enemy.location))
-					print "enemy exits in game.units: {}".format(enemy in g.units[nation])
-					print "fleet exits in game.units: {}".format(fleet in g.units[nation])
 					g.battle(unit=fleet, enemy=enemy)
-					print "checking units postbattle"
-					unitcheck(g)
-				print
-			print
 			for army in g.getarmies(nation):
 				if len(army.moveoptions() + army.conveyoptions().keys()) > 0:
 					pick = choice(army.moveoptions() + army.conveyoptions().keys())
@@ -623,24 +697,16 @@ if __name__ == '__main__':
 					if enemies:
 						enemy = choice(enemies)
 						g.battle(unit=army, enemy=enemy)
-			print "checking prereset next round"
-			unitcheck(g)
-			print "Reseting movement"
 			g.gainmovement(nation)
-			print "checking units postpick enemy"
-			unitcheck(g)
-			print "resetting convoyment"
 			g.gainconvey(nation)
-			print "checking units postpick enemy"
-			unitcheck(g)
-			print "gaining areas"
-			g.placingflags()
-			print "checking units postpick enemy"
-			unitcheck(g)
-			print
-			print
-
-
+			g.claimareas()
+		print
+		for nation in g.nations:
+			print " {} owns areas: {}, owns units {} ".format(nation, nation.numberofflags(), len(g.units[nation]))
+		print
+		for area in g.getareatype(City):
+			print "{} occupied: {}".format(area, area.occupied)
+		print
 		
 		
 
