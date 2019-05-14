@@ -78,7 +78,7 @@ class City(Land):
 class Canal(object):
 	"""docstring for canal"""
 	def __init__(self, name, connection, controlledby):
-		super(Canal, self).__init__(name, connection)
+		super(Canal, self).__init__()
 		self.name = name
 		self.connection = connection
 		self.controlledby = controlledby
@@ -396,7 +396,7 @@ class Game(object):
 				area.changeowner(newowner)
 			elif isinstance(area, City) and len(areaunitownerlist) > 1:
 				# this probably needs work
-				if area.owner not in areaunitownerlist:
+				if area.owner() not in areaunitownerlist:
 					 # any nation if own not present....
 					area.changeowner(areaunitownerlist[0])
 				else:
@@ -456,10 +456,26 @@ class creategame(object):
 						break
 			area.connection = connectionsobj
 
-		return l + s + h + c
+		# c = self.createcanals(self.canals)
+		# print c
+		# # making connection to canal objects instead of strings
+		# for canal in c:
+		# 	connectionsobj = []
+		# 	for connectto in canal.connection:
+		# 		for area in a:
+		# 			if str(area) == connectto:
+		# 				connectionsobj.append(area)
+		# 				break
+		# 	canal.connection = connectionsobj
+		# 	connectionsobj = []
+		# 	for area in a:
+		# 		if str(area) == canal.controlledby:
+		# 			connectionsobj.append(area)
+		# 			break
+		# 	canal.controlledby = connectionsobj
 
-	def createcanals(self, canals):
-		return [Canal(name=area, connection=self.connections[area]) for area in self.canals]
+		return l + s + h
+
 
 
 if __name__ == '__main__':
@@ -703,6 +719,7 @@ if __name__ == '__main__':
 		print
 		for nation in g.nations:
 			print " {} owns areas: {}, owns units {} ".format(nation, nation.numberofflags(), len(g.units[nation]))
+			print nation.areas
 		print
 		for area in g.getareatype(City):
 			print "{} occupied: {}".format(area, area.occupied)
