@@ -6,10 +6,10 @@ from collections import Counter
 
 class Area(object):
 	"""docstring for area"""
-	def __init__(self, name, connection, owned=None):
+	def __init__(self, name, connection, owner=None):
 		super(Area, self).__init__()
 		self.connection = connection
-		self.owned = owned
+		self.owner = owner
 		self.name = name
 		self.units = []
 
@@ -18,17 +18,6 @@ class Area(object):
 
 	def __str__(self):
 		return self.name
-
-	def owner(self):
-		return self.owned
-
-	def changeowner(self, newowner):
-		if self.owner() != newowner and self.owner() != None:
-			self.owner().areas.remove(self)
-			self.owned = None
-		if self.owner() != newowner and newowner.numberofflags() < 15:
-			newowner.areas.append(self)
-			self.owned = newowner
 
 	def getareamoveoptions(self):
 		return self.connection
@@ -42,8 +31,8 @@ class Area(object):
 
 class Sea(Area):
 	"""docstring for sea"""
-	def __init__(self, name, connection, owned=None):
-		super(Sea, self).__init__(name, connection, owned)
+	def __init__(self, name, connection, owner=None):
+		super(Sea, self).__init__(name, connection, owner)
 
 	def getnotconveyedboats(self, nation):
 		return [unit for unit in self.units if not unit.conveyed if unit.nation == nation]
@@ -51,28 +40,24 @@ class Sea(Area):
 
 class Land(Area):
 	"""docstring for land"""
-	def __init__(self, name, connection, owned=None):
-		super(Land, self).__init__(name, connection, owned)
+	def __init__(self, name, connection, owner=None):
+		super(Land, self).__init__(name, connection, owner)
 
 
 class City(Land):
 	"""docstring for city"""
-	def __init__(self, name, connection, nation, factory, owned=None):
-		super(City, self).__init__(name, connection, owned)
+	def __init__(self, name, connection, nation, factory, owner=None):
+		super(City, self).__init__(name, connection, owner)
 		self.nation = nation
 		self.factory = factory
-		self.occupied = False
 
 	def buildunit(self):
 		'''returns unit if factory is build and area is not occupied'''
-		if self.factory.isbuild() and not self.occupied:
+		if self.factory.isbuild() and not self.occupied():
 			return self.factory.buildunit(self.nation, self)
 
-	def changeowner(self, newowner):
-		if newowner == self.owner():
-			self.occupied = False
-			return
-		self.occupied = True
+	def occupied(self):
+		return self.owner != self.nation
 
 
 class Canal(object):
@@ -333,8 +318,8 @@ class Game(object):
 
 	def getareas(self, nation):
 		'''returns list of areas controlled by nation, including homecities'''
-		# return [area for area in self.areas if area.owner() == str(nation)]
-		return [area for area in self.areas if area.owner() == nation]
+		# return [area for area in self.areas if area.owner == str(nation)]
+		return [area for area in self.areas if area.owner == nation]
 
 	def getareamoveoptions(self, area, areatype=None):
 		'''returns list of area objects with possible destinations from current area. With areatype it is possible to make sub selection'''
@@ -347,7 +332,7 @@ class Game(object):
 	def buildunits(self, nation):
 		# optimize... use nation.homecities?
 		for area in self.areas:
-			if isinstance(area, City) and area.owned == nation:
+			if isinstance(area, City) and area.owner == nation:
 				unit = area.buildunit()
 				if unit != None:
 					self.units[nation].append(unit)
@@ -377,8 +362,10 @@ class Game(object):
 		# for example blue invades an area occupied by green and yellow and red, which is owned
 		# by green. Green gets destroyed by blue. Yellow and red remain. Ownership
 		# should be returned to None
-		if location.unitfreqnation()[location.owner()] == 0:
-			location.owned = None
+		if location.unitfreqnation()[location.owner] == 0:
+			# this wil might need an if statement for the unlikely event a battle starts without first having a claimed areas... but that should not happen right;)
+			location.owner.areas.remove(location)
+			location.owner = None
 
 	def getareatype(self, type):
 		return [area for area in self.areas if isinstance(area, type)]
@@ -389,18 +376,24 @@ class Game(object):
 
 		# loop over sea and land areas, exculde cities. An exception that occurs with 4 nations is handled in game.battle().
 		for area in self.areas:
-			# only change area when 1 nation is present. 
-			areaunitownerlist = area.unitfreqnation().keys()
-			if len(areaunitownerlist) == 1:
-				newowner = areaunitownerlist[0]
-				area.changeowner(newowner)
-			elif isinstance(area, City) and len(areaunitownerlist) > 1:
-				# this probably needs work
-				if area.owner() not in areaunitownerlist:
-					 # any nation if own not present....
-					area.changeowner(areaunitownerlist[0])
-				else:
-					area.changeowner(area.owner())
+			unitfreq = area.unitfreqnation()
+			if isinstance(area, City) and len(unitfreq.keys()) == 0 and area.owner != area.nation:
+				# if city is no longer occupied it'll return to nation
+				nation = area.nation
+				self.changeclaim(area, nation)
+			elif len(unitfreq.keys()) == 1 and area.owner != unitfreq.keys()[0]:
+				# if only 1 nation occupies a area, it'll claim ownership
+				nation = unitfreq.keys()[0]
+				if nation.numberofflags() < 15:
+					self.changeclaim(area, nation)
+
+	def changeclaim(self, area, nation):
+		# remove area from current owners area list
+		if area.owner != None:
+			area.owner.areas.remove(area)
+		# only 1 nation has units in area and takes ownership of area
+		area.owner = nation
+		nation.areas.append(area)
 
 
 class creategame(object):
@@ -438,10 +431,10 @@ class creategame(object):
 					nationobj = nationob
 			for ci in self.homecities[nation]:
 				if ci in self.navalyard.keys():
-					h.append(City(name=ci, connection=self.connections[ci], factory=Shipyard(build=self.navalyard[ci]), nation=nationobj, owned=nationobj))
+					h.append(City(name=ci, connection=self.connections[ci], factory=Shipyard(build=self.navalyard[ci]), nation=nationobj, owner=nationobj))
 					nationobj.areas.append(h[-1])
 				if ci in self.factory.keys():
-					h.append(City(name=ci, connection=self.connections[ci], factory=Armarent(build=self.factory[ci]), nation=nationobj, owned=nationobj))
+					h.append(City(name=ci, connection=self.connections[ci], factory=Armarent(build=self.factory[ci]), nation=nationobj, owner=nationobj))
 					nationobj.areas.append(h[-1])
 		# c = [Canal(name=area, connection=self.connections[area]) for area in self.canals]
 		a = l + s + h
@@ -716,14 +709,23 @@ if __name__ == '__main__':
 			g.gainmovement(nation)
 			g.gainconvey(nation)
 			g.claimareas()
-		print
+			# print
+			print
+			for area in g.areas:
+				t = Counter([area in nation.areas for nation in g.nations])
+				if t[True] > 1:
+					print area
+			print 
+			# print
+
+
 		for nation in g.nations:
 			print " {} owns areas: {}, owns units {} ".format(nation, nation.numberofflags(), len(g.units[nation]))
 			print nation.areas
 		print
-		for area in g.getareatype(City):
-			print "{} occupied: {}".format(area, area.occupied)
-		print
+		# for area in g.getareatype(City):
+		# 	print "{} occupied: {}".format(area, area.occupied())
+		# print
 		
 		
 
