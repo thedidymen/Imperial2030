@@ -74,6 +74,12 @@ class Canal(object):
 	def __str__(self):
 		return self.name
 
+	def controlledmovement(self):
+		return self.connection
+
+	def controlingnation(self):
+		return controlledby.nation
+
 		
 class Factory(object):
 	"""docstring for factory"""
@@ -274,7 +280,10 @@ class Entity(object):
 
 
 class Nation(Entity):
-	"""docstring for nation"""
+	"""
+	to do:
+
+	"""
 	def __init__(self, homeareas, name, bonds):
 		super(Nation, self).__init__(name, bonds)
 		self.homeareas = homeareas
@@ -289,6 +298,13 @@ class Nation(Entity):
 				number += 1
 		return number
 
+	def gainpower(self, amount, winningscore):
+		"""adds amount to powerlvl, capped at 25. returns True if powerlvl >= 25"""
+		self.powerlvl += amount
+		if self.powerlvl > 25:
+			self.powerlvl = 25
+		return self.powerlvl >= 25
+
 
 class Player(Entity):
 	"""docstring for player"""
@@ -300,7 +316,12 @@ class Player(Entity):
 
 
 class Game(object):
-	"""docstring for game"""
+	"""docstring for game
+
+	to do:
+		add winningscore is setup
+
+	"""
 	def __init__(self, default=True):
 		super(Game, self).__init__()
 		if default:
@@ -310,6 +331,9 @@ class Game(object):
 			self.nations = cg.createnations()
 			self.areas = cg.createareas(self.nations)
 			self.units = {nation : [] for nation in self.nations}
+			self.canals = cg.createcanals(areas=self.areas)
+			self.winningscore = cg.winningscore
+			self.tax = cg.tax
 		else:
 			print 'no none default settings implemented.'
 
@@ -362,7 +386,7 @@ class Game(object):
 		# for example blue invades an area occupied by green and yellow and red, which is owned
 		# by green. Green gets destroyed by blue. Yellow and red remain. Ownership
 		# should be returned to None
-		if location.unitfreqnation()[location.owner] == 0:
+		if location.owner != None and location.unitfreqnation()[location.owner] == 0:
 			# this wil might need an if statement for the unlikely event a battle starts without first having a claimed areas... but that should not happen right;)
 			location.owner.areas.remove(location)
 			location.owner = None
@@ -395,6 +419,24 @@ class Game(object):
 		area.owner = nation
 		nation.areas.append(area)
 
+	def gettax(self, nation):
+		return nation.numberofflags() + 2 * len([city for city in self.getareatype(City) if not city.occupied])
+
+	def getupkeep(self, nation):
+		return len(self.units[nation])
+
+	def getbonus(self, tax):
+		if tax > 18:
+			tax = 18
+		return self.tax["bonus"][tax]
+
+	def getpowerlvl(self, tax):
+		if tax > 18:
+			tax = 18
+		return self.tax["powerlvl"][tax]
+
+
+
 
 class creategame(object):
 	"""docstring for creategame"""
@@ -410,6 +452,8 @@ class creategame(object):
 		self.navalyard = defaults.navalyard
 		self.factory = defaults.factory
 		self.players = defaults.players
+		self.tax = defaults.tax
+		self.winningscore = defaults.winningscore
 
 	def createplayers(self):
 		return [Player(name=p) for p in self.players]
@@ -436,7 +480,6 @@ class creategame(object):
 				if ci in self.factory.keys():
 					h.append(City(name=ci, connection=self.connections[ci], factory=Armarent(build=self.factory[ci]), nation=nationobj, owner=nationobj))
 					nationobj.areas.append(h[-1])
-		# c = [Canal(name=area, connection=self.connections[area]) for area in self.canals]
 		a = l + s + h
 
 		# making connections objects instead of strings
@@ -448,32 +491,29 @@ class creategame(object):
 						connectionsobj.append(areaobj)
 						break
 			area.connection = connectionsobj
-
-		# c = self.createcanals(self.canals)
-		# print c
-		# # making connection to canal objects instead of strings
-		# for canal in c:
-		# 	connectionsobj = []
-		# 	for connectto in canal.connection:
-		# 		for area in a:
-		# 			if str(area) == connectto:
-		# 				connectionsobj.append(area)
-		# 				break
-		# 	canal.connection = connectionsobj
-		# 	connectionsobj = []
-		# 	for area in a:
-		# 		if str(area) == canal.controlledby:
-		# 			connectionsobj.append(area)
-		# 			break
-		# 	canal.controlledby = connectionsobj
-
 		return l + s + h
 
+	def createcanals(self, areas):
+		l = []
+		for canal in self.canals.keys():
+			connection = [area for area in areas if str(area) in self.canals[canal][1]]
+			controlledby = [area for area in areas if str(area) in self.canals[canal][0]]
+			l.append(Canal(name=canal, connection=connection, controlledby=controlledby[0]))
+		return l
+		# pass
 
 
 if __name__ == '__main__':
 	print "setting up game"
 	g = Game()
+
+
+
+
+	# t = Counter([1,1,1,3,3,4,4])
+	# if t[None] == 0:
+	# 	print True, t, t[None]==0
+
 	# print g
 	# print "checking players"
 	# print g.players
@@ -682,53 +722,110 @@ if __name__ == '__main__':
 
 
 
-	n =  200
-	for nation in g.nations:
-		g.buildunits(nation)
-		print
-	print "playing {} rounds".format(n)
-	for i in range(n):
-		print 
-		print "current round: {}".format(i)
-		print
-		for nation in g.nations:
-			g.buildunits(nation)
-			for fleet in g.getfleets(nation):
-				pick = choice(fleet.moveoptions())
-				enemies = fleet.move(pick)
-				if enemies:
-					enemy = choice(enemies)
-					g.battle(unit=fleet, enemy=enemy)
-			for army in g.getarmies(nation):
-				if len(army.moveoptions() + army.conveyoptions().keys()) > 0:
-					pick = choice(army.moveoptions() + army.conveyoptions().keys())
-					enemies = army.move(pick)
-					if enemies:
-						enemy = choice(enemies)
-						g.battle(unit=army, enemy=enemy)
-			g.gainmovement(nation)
-			g.gainconvey(nation)
-			g.claimareas()
-			# print
-			print
-			for area in g.areas:
-				t = Counter([area in nation.areas for nation in g.nations])
-				if t[True] > 1:
-					print area
-			print 
-			# print
+	# n =  200
+	# for nation in g.nations:
+	# 	g.buildunits(nation)
+	# 	print
+	# print "playing {} rounds".format(n)
+	# for i in range(n):
+	# 	print 
+	# 	print "current round: {}".format(i)
+	# 	print
+	# 	for nation in g.nations:
+	# 		g.buildunits(nation)
+	# 		for fleet in g.getfleets(nation):
+	# 			pick = choice(fleet.moveoptions())
+	# 			enemies = fleet.move(pick)
+	# 			if enemies:
+	# 				enemy = choice(enemies)
+	# 				g.battle(unit=fleet, enemy=enemy)
+	# 		for army in g.getarmies(nation):
+	# 			if len(army.moveoptions() + army.conveyoptions().keys()) > 0:
+	# 				pick = choice(army.moveoptions() + army.conveyoptions().keys())
+	# 				enemies = army.move(pick)
+	# 				if enemies:
+	# 					enemy = choice(enemies)
+	# 					g.battle(unit=army, enemy=enemy)
+	# 		g.gainmovement(nation)
+	# 		g.gainconvey(nation)
+	# 		g.claimareas()
+	# 		# print
+	# 		print
+	# 		for area in g.areas:
+	# 			t = Counter([area in nation.areas for nation in g.nations])
+	# 			if t[True] > 1:
+	# 				print area
+	# 		print 
+	# 		# print
 
 
-		for nation in g.nations:
-			print " {} owns areas: {}, owns units {} ".format(nation, nation.numberofflags(), len(g.units[nation]))
-			print nation.areas
-		print
+	# 	for nation in g.nations:
+	# 		print " {} owns areas: {}, owns units {} ".format(nation, nation.numberofflags(), len(g.units[nation]))
+	# 		print nation.areas
+	# 	print
 		# for area in g.getareatype(City):
 		# 	print "{} occupied: {}".format(area, area.occupied())
 		# print
 		
 		
 
+
+	n =  20
+
+	print "playing {} rounds".format(n)
+	for i in range(n):
+		print 
+		print "current simulation: {}".format(i)
+		print
+		victory = False
+		round = 0
+		print "setting up game"
+		g = Game()
+		while not victory:
+			round += 1
+			print
+			print "round: {}".format(round)
+			print
+			for nation in g.nations:
+				print "building units for {}".format(nation)
+				g.buildunits(nation)
+				print "moving units for {}".format(nation)
+				for fleet in g.getfleets(nation):
+					pick = choice(fleet.moveoptions())
+					enemies = fleet.move(pick)
+					if enemies:
+						enemy = choice(enemies)
+						g.battle(unit=fleet, enemy=enemy)
+				for army in g.getarmies(nation):
+					if len(army.moveoptions() + army.conveyoptions().keys()) > 0:
+						pick = choice(army.moveoptions() + army.conveyoptions().keys())
+						enemies = army.move(pick)
+						if enemies:
+							enemy = choice(enemies)
+							g.battle(unit=army, enemy=enemy)
+				print "gain momvement and convoy for {}".format(nation)
+				g.gainmovement(nation)
+				g.gainconvey(nation)
+				print "claim areas"
+				g.claimareas()
+				print "taxation for {}".format(nation)
+				tax = g.gettax(nation)
+				upkeep = g.getupkeep(nation)
+				bonus = g.getbonus(tax)
+				powerlvl = g.getpowerlvl(tax)
+				print "tax: {}, upkeep: {}, bonus: {}, powerlvl: {}".format(tax, upkeep, bonus, powerlvl)
+				nation.changesaldo(tax)
+				nation.changesaldo(-upkeep)
+				nation.changesaldo(-bonus)
+				print "some player receives {}".format(bonus)
+				victory = nation.gainpower(powerlvl, g.winningscore)
+				print "{} has {} power".format(nation, nation.powerlvl)
+				if victory:
+					print
+					for nation in g.nations:
+						print "{} has powerfactor of {}".format(nation, nation.powerlvl/5)
+					break
+				print
 
 
 		

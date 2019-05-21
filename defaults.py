@@ -14,3 +14,9 @@ homecities = {
 navalyard = {'San Francisco' : False, 'New Orleans' : True, 'New York' : False, 'Fortaleza' : False, 'Rio de Janeiro' : True, 'London' : True, 'Rome' : False, 'Murmansk' : False, 'Vladivostok' : True, 'Shanghai' : True, 'Kolkata' : False, 'Mumbai' : True}
 factory = {'Chicago' : True, 'Manaus' : False, 'Brasillia' : True, 'Paris' : True, 'Berlin' : False, 'Moscow' : True, 'Novasibirsk' : False, 'Urumqi' : False, 'Chongging' : False, 'Beijing' : True, 'New Delhi' : True, 'Chennai' : False}
 players = ['Player1', 'Player2', 'Player3', 'Player4', 'Player5', 'Player6']
+tax = {
+	"bonus" :    [0,0,0,0,0,1,1,1,1,2,2,3,3,4,4,5,5,5],
+	"powerlvl" : [0,0,0,0,0,1,1,2,2,3,4,5,6,7,8,9,9,10]
+}
+
+winningscore = 25
