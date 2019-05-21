@@ -276,7 +276,10 @@ class Entity(object):
 			self.money += amount
 			return True
 		else: 
-			return False	
+			return False
+
+	def getbonds(self, nation, owner):
+		return [bond for bond in self.bonds if bond.nation == nation and bond.owner ==  owner]
 
 
 class Nation(Entity):
