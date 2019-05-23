@@ -247,7 +247,7 @@ class Bond(object):
 		self.interest = interest
 
 	def __repr__(self):
-		return "{} bonds of {}".format(self.bonds, self.nation)
+		return "{} bonds of {}".format(self.share, self.nation)
 
 
 class Entity(object):
@@ -279,7 +279,7 @@ class Entity(object):
 			return False
 
 	def getbonds(self, nation, owner):
-		return [bond for bond in self.bonds if bond.nation == nation and bond.owner ==  owner]
+		return [bond for bond in self.bonds if bond.nation == nation and bond.owner == owner]
 
 
 class Nation(Entity):
@@ -389,7 +389,7 @@ class Game(object):
 		# for example blue invades an area occupied by green and yellow and red, which is owned
 		# by green. Green gets destroyed by blue. Yellow and red remain. Ownership
 		# should be returned to None
-		if location.owner != None and location.unitfreqnation()[location.owner] == 0:
+		if location.owner != None and location.unitfreqnation()[location.owner] == 0 and len(location.unitfreqnation()) >= 1:
 			# this wil might need an if statement for the unlikely event a battle starts without first having a claimed areas... but that should not happen right;)
 			location.owner.areas.remove(location)
 			location.owner = None
@@ -509,6 +509,17 @@ class creategame(object):
 if __name__ == '__main__':
 	print "setting up game"
 	g = Game()
+
+	for nation in g.nations:
+		print
+		for bond in nation.bonds:
+			print bond
+			print bond.nation, bond.nation == nation, type(bond.nation)
+			print bond.owner, bond.owner == 'bank'
+			print
+		for bond in nation.getbonds(nation=nation, owner='bank'):
+			print "b"
+			print bond
 
 
 
@@ -773,62 +784,62 @@ if __name__ == '__main__':
 		
 
 
-	n =  20
+	# n =  20
 
-	print "playing {} rounds".format(n)
-	for i in range(n):
-		print 
-		print "current simulation: {}".format(i)
-		print
-		victory = False
-		round = 0
-		print "setting up game"
-		g = Game()
-		while not victory:
-			round += 1
-			print
-			print "round: {}".format(round)
-			print
-			for nation in g.nations:
-				print "building units for {}".format(nation)
-				g.buildunits(nation)
-				print "moving units for {}".format(nation)
-				for fleet in g.getfleets(nation):
-					pick = choice(fleet.moveoptions())
-					enemies = fleet.move(pick)
-					if enemies:
-						enemy = choice(enemies)
-						g.battle(unit=fleet, enemy=enemy)
-				for army in g.getarmies(nation):
-					if len(army.moveoptions() + army.conveyoptions().keys()) > 0:
-						pick = choice(army.moveoptions() + army.conveyoptions().keys())
-						enemies = army.move(pick)
-						if enemies:
-							enemy = choice(enemies)
-							g.battle(unit=army, enemy=enemy)
-				print "gain momvement and convoy for {}".format(nation)
-				g.gainmovement(nation)
-				g.gainconvey(nation)
-				print "claim areas"
-				g.claimareas()
-				print "taxation for {}".format(nation)
-				tax = g.gettax(nation)
-				upkeep = g.getupkeep(nation)
-				bonus = g.getbonus(tax)
-				powerlvl = g.getpowerlvl(tax)
-				print "tax: {}, upkeep: {}, bonus: {}, powerlvl: {}".format(tax, upkeep, bonus, powerlvl)
-				nation.changesaldo(tax)
-				nation.changesaldo(-upkeep)
-				nation.changesaldo(-bonus)
-				print "some player receives {}".format(bonus)
-				victory = nation.gainpower(powerlvl, g.winningscore)
-				print "{} has {} power".format(nation, nation.powerlvl)
-				if victory:
-					print
-					for nation in g.nations:
-						print "{} has powerfactor of {}".format(nation, nation.powerlvl/5)
-					break
-				print
+	# print "playing {} rounds".format(n)
+	# for i in range(n):
+	# 	print 
+	# 	print "current simulation: {}".format(i)
+	# 	print
+	# 	victory = False
+	# 	round = 0
+	# 	print "setting up game"
+	# 	g = Game()
+	# 	while not victory:
+	# 		round += 1
+	# 		print
+	# 		print "round: {}".format(round)
+	# 		print
+	# 		for nation in g.nations:
+	# 			print "building units for {}".format(nation)
+	# 			g.buildunits(nation)
+	# 			print "moving units for {}".format(nation)
+	# 			for fleet in g.getfleets(nation):
+	# 				pick = choice(fleet.moveoptions())
+	# 				enemies = fleet.move(pick)
+	# 				if enemies:
+	# 					enemy = choice(enemies)
+	# 					g.battle(unit=fleet, enemy=enemy)
+	# 			for army in g.getarmies(nation):
+	# 				if len(army.moveoptions() + army.conveyoptions().keys()) > 0:
+	# 					pick = choice(army.moveoptions() + army.conveyoptions().keys())
+	# 					enemies = army.move(pick)
+	# 					if enemies:
+	# 						enemy = choice(enemies)
+	# 						g.battle(unit=army, enemy=enemy)
+	# 			print "gain momvement and convoy for {}".format(nation)
+	# 			g.gainmovement(nation)
+	# 			g.gainconvey(nation)
+	# 			print "claim areas"
+	# 			g.claimareas()
+	# 			print "taxation for {}".format(nation)
+	# 			tax = g.gettax(nation)
+	# 			upkeep = g.getupkeep(nation)
+	# 			bonus = g.getbonus(tax)
+	# 			powerlvl = g.getpowerlvl(tax)
+	# 			print "tax: {}, upkeep: {}, bonus: {}, powerlvl: {}".format(tax, upkeep, bonus, powerlvl)
+	# 			nation.changesaldo(tax)
+	# 			nation.changesaldo(-upkeep)
+	# 			nation.changesaldo(-bonus)
+	# 			print "some player receives {}".format(bonus)
+	# 			victory = nation.gainpower(powerlvl, g.winningscore)
+	# 			print "{} has {} power".format(nation, nation.powerlvl)
+	# 			if victory:
+	# 				print
+	# 				for nation in g.nations:
+	# 					print "{} has powerfactor of {}".format(nation, nation.powerlvl/5)
+	# 				break
+	# 			print
 
 
 		
