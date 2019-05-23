@@ -252,14 +252,10 @@ class Bond(object):
 
 class Entity(object):
 	"""docstring for entity"""
-	def __init__(self, name, bonds=None):
+	def __init__(self, name):
 		super(Entity, self).__init__()
 		self.name = name
 		self.money = 0
-		if bonds == None:
-			self.bonds = []
-		else:
-			self.bonds = bonds
 	
 	def __repr__(self):
 		return self.name
@@ -270,16 +266,47 @@ class Entity(object):
 	def getsaldo(self):
 		return self.money
 
-	def changesaldo(self, amount):
+	def liquidity(self, amount):
+		"""returns True is amount is lower than self.money"""
+		return (self.money - amount) > 0
+
+	def withdraw(self, amount):
 		'''returns True if saldo + amount > 0 and gain amount to current saldo, else False and does not gain amount to saldo'''
-		if self.money + amount > 0:
-			self.money += amount
-			return True
-		else: 
-			return False
+		self.money - amount
+		return amount
+
+	def deposit(self, amount):
+		self.money + amount
+
+
+
+class Bank(Entity):
+	"""docstring for  Bank"""
+	def __init__(self, name, bonds):
+		super( Bank, self).__init__(name)
+		self.name = name
+		self.bonds = bonds
+
+	def liquidity(self, amount):
+		"""the bank is always has liquidity"""
+		return True
+
+	def withdraw(self, amount):
+		"""the bank always has more money"""
+		return amount
+
+	def deposit(self, amount):
+		"""A band will always accept money"""
+		pass
 
 	def getbonds(self, nation, owner):
-		return [bond for bond in self.bonds if bond.nation == nation and bond.owner == owner]
+		return [bond for bond in self.bonds[nation] if bond.owner == owner]
+
+	def getbondsowners(self, nation):
+		return Counter([bond.owner for bond in self.bonds[nation]]).keys()
+
+	def getbondsperowner(self, nation):
+		return {owner : sum(bond.share for bond in self.getbonds(nation, owner)) for owner in self.getbondsowners(nation)}
 
 
 class Nation(Entity):
@@ -287,8 +314,8 @@ class Nation(Entity):
 	to do:
 
 	"""
-	def __init__(self, homeareas, name, bonds):
-		super(Nation, self).__init__(name, bonds)
+	def __init__(self, homeareas, name):
+		super(Nation, self).__init__(name)
 		self.homeareas = homeareas
 		self.powerlvl = 0
 		self.areas = []
@@ -307,6 +334,9 @@ class Nation(Entity):
 		if self.powerlvl > 25:
 			self.powerlvl = 25
 		return self.powerlvl >= 25
+
+	def getpowerfactor(self):
+		return self.powerlvl/5
 
 
 class Player(Entity):
@@ -337,6 +367,7 @@ class Game(object):
 			self.canals = cg.createcanals(areas=self.areas)
 			self.winningscore = cg.winningscore
 			self.tax = cg.tax
+			self.bank = cg.createbank(self.nations)
 		else:
 			print 'no none default settings implemented.'
 
@@ -438,6 +469,8 @@ class Game(object):
 			tax = 18
 		return self.tax["powerlvl"][tax]
 
+	def getpowerfactornations(self):
+		return {nation:nation.getpowerfactor() for nation in self.nations}
 
 
 
@@ -465,7 +498,10 @@ class creategame(object):
 		return [Bond(share=b, interest=self.bonds[b], nation=nation) for b in self.bonds.keys()]
 
 	def createnations(self):
-		return [Nation(name=natie, bonds=self.createbonds(nation=natie), homeareas=self.homecities[natie]) for natie in self.nations]
+		return [Nation(name=natie, homeareas=self.homecities[natie]) for natie in self.nations]
+
+	def createbank(self, nations):
+		return Bank(name='Bank', bonds={nation : self.createbonds(nation) for nation in nations})
 
 	def createareas(self, nationsobj):
 		l = [Land(name=area, connection=self.connections[area]) for area in self.landareas]
@@ -512,14 +548,10 @@ if __name__ == '__main__':
 
 	for nation in g.nations:
 		print
-		for bond in nation.bonds:
-			print bond
-			print bond.nation, bond.nation == nation, type(bond.nation)
-			print bond.owner, bond.owner == 'bank'
-			print
-		for bond in nation.getbonds(nation=nation, owner='bank'):
-			print "b"
-			print bond
+		print g.bank.getbondsperowner(nation)
+		# for bond in g.bank.getbonds(nation=nation, owner='bank'):
+		# 	print "b"
+		# 	print bond
 
 
 
