@@ -249,6 +249,10 @@ class Bond(object):
 	def __repr__(self):
 		return "{} bonds of {}".format(self.share, self.nation)
 
+	def buybond(self, player):
+		self.owner = player
+		self.nation.deposit(self.owner.withdraw(self.share))
+
 
 class Entity(object):
 	"""docstring for entity"""
@@ -573,14 +577,6 @@ if __name__ == '__main__':
 	print "setting up game"
 	g = Game()
 
-	for nation in g.nations:
-		print
-		print g.bank.getbondsperowner(nation)
-
-	for n in range(32):
-		print
-		print n, g.bank.shareoptions(n)
-
 	n =  20
 	randomtable = [True, False, False, False, False, False, False, False, False, False]
 
@@ -593,6 +589,8 @@ if __name__ == '__main__':
 		round = 0
 		print "setting up game"
 		g = Game()
+		for player in g.players:
+			player.deposit(13)
 		while not victory:
 			round += 1
 			print
@@ -639,16 +637,24 @@ if __name__ == '__main__':
 				victory = nation.gainpower(powerlvl, g.winningscore)
 				print "{} has {} power".format(nation, nation.powerlvl)
 
-				for player in g.players:
-					g.investorbonus(player)
-					print player, g.investoroptions(player)
-
-
-
-
 				if victory:
 					print
 					for nation in g.nations:
 						print "{} has powerfactor of {}".format(nation, nation.powerlvl/5)
 					break
 				print
+
+			for player in g.players:
+				g.investorbonus(player)
+				choices = g.investoroptions(player)
+				print choices
+				if choices:
+					pick = choice(choices)
+					pick.buybond(player)
+					print pick
+
+			# get majorshareholder
+			# set control to majorshareholder
+
+
+
