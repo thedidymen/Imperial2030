@@ -2,6 +2,7 @@ import defaults
 from random import shuffle, choice
 from collections import Counter
 import logging
+import logging.config
 
 
 
@@ -372,7 +373,9 @@ class Game(object):
 	"""
 	def __init__(self, default=True):
 		super(Game, self).__init__()
+		self.logger = logging.getLogger("{0}.Game".format(__name__))
 		if default:
+			self.logger.info('Starting game with default settings')
 			cg = creategame()
 			self.players = cg.createplayers()
 			shuffle(self.players)
@@ -511,6 +514,7 @@ class creategame(object):
 	"""docstring for creategame"""
 	def __init__(self):
 		super(creategame, self).__init__()
+		self.logger = logging.getLogger("{0}.Creategame".format(__name__))
 		self.nations = defaults.nations
 		self.bonds = defaults.bonds
 		self.connections = defaults.connections
@@ -525,18 +529,28 @@ class creategame(object):
 		self.winningscore = defaults.winningscore
 
 	def createplayers(self):
+		"""returns player objects in a list"""
+		self.logger.info('Setting up Players')
 		return [Player(name=p) for p in self.players]
 
 	def createbonds(self, nation):
+		"""returns bond objects in a list for given nation"""
+		self.logger.info('Setting up Bonds for {}'.format(nation))
 		return [Bond(share=b, interest=self.bonds[b], nation=nation) for b in self.bonds.keys()]
 
 	def createnations(self):
+		"""returns list with nations objects"""
+		self.logger.info('Setting up Nations')
 		return [Nation(name=natie, homeareas=self.homecities[natie]) for natie in self.nations]
 
 	def createbank(self, nations):
+		"""returns bank object"""
+		self.logger.info('Setting up Bank')
 		return Bank(name='Bank', bonds={nation : self.createbonds(nation) for nation in nations})
 
 	def createareas(self, nationsobj):
+		"""returns list of area objects, homecities are owned by their respective nations"""
+		self.logger.info('Setting up Areas')
 		l = [Land(name=area, connection=self.connections[area]) for area in self.landareas]
 		s = [Sea(name=area, connection=self.connections[area]) for area in self.seaareas]
 		h = []
@@ -566,6 +580,8 @@ class creategame(object):
 		return l + s + h
 
 	def createcanals(self, areas):
+		"""returns list of canal objects"""
+		self.logger.info('Setting up Canals')
 		l = []
 		for canal in self.canals.keys():
 			connection = [area for area in areas if str(area) in self.canals[canal][1]]
@@ -576,37 +592,28 @@ class creategame(object):
 
 
 if __name__ == '__main__':
-	print "setting up game"
+	logging.config.fileConfig('logging.ini')
+	logger = logging.getLogger(__name__)
+
 	g = Game()
 
 	n =  20
 	randomtable = [True, False, False, False, False, False, False, False, False, False]
 
-	print "playing {} rounds".format(n)
 	for i in range(n):
-		print 
-		print "current simulation: {}".format(i)
-		print
 		victory = False
 		round = 0
-		print "setting up game"
 		g = Game()
 		for player in g.players:
 			player.deposit(13)
 		while not victory:
 			round += 1
-			print
-			print "round: {}".format(round)
-			print
 			for nation in g.nations:
 				if choice(randomtable):
-					print "building factory for {}".format(nation)
 					choices = g.getbuildfactoryoptions(nation)
 					if choices:
 						g.buildfactory(choice(choices))
-				print "building units for {}".format(nation)
 				g.buildunits(nation)
-				print "moving units for {}".format(nation)
 				for fleet in g.getfleets(nation):
 					pick = choice(fleet.moveoptions())
 					enemies = fleet.move(pick)
@@ -620,43 +627,116 @@ if __name__ == '__main__':
 						if enemies:
 							enemy = choice(enemies)
 							g.battle(unit=army, enemy=enemy)
-				print "gain momvement and convoy for {}".format(nation)
 				g.gainmovement(nation)
 				g.gainconvey(nation)
-				print "claim areas"
 				g.claimareas()
-				print "taxation for {}".format(nation)
 				tax = g.gettax(nation)
 				upkeep = g.getupkeep(nation)
 				bonus = g.getbonus(tax)
 				powerlvl = g.getpowerlvl(tax)
-				print "tax: {}, upkeep: {}, bonus: {}, powerlvl: {}".format(tax, upkeep, bonus, powerlvl)
 				nation.deposit(tax)
 				g.bank.deposit(nation.withdraw(upkeep))
 				g.bank.deposit(nation.withdraw(bonus))
-				print "some player receives {}".format(bonus)
-				print "nation saldo: {}".format(nation.getsaldo())
+
 				victory = nation.gainpower(powerlvl, g.winningscore)
-				print "{} has {} power".format(nation, nation.powerlvl)
 
 				if victory:
 					print
 					for nation in g.nations:
 						print "{} has powerfactor of {}".format(nation, nation.powerlvl/5)
 					break
-				print
 
 			for player in g.players:
 				g.investorbonus(player)
 				choices = g.investoroptions(player)
-				print choices
 				if choices:
 					pick = choice(choices)
 					pick.buybond(player)
-					print pick
+
 
 			# get majorshareholder
 			# set control to majorshareholder
+
+	# g = Game()
+
+	# n =  20
+	# randomtable = [True, False, False, False, False, False, False, False, False, False]
+
+	# print "playing {} rounds".format(n)
+	# for i in range(n):
+	# 	print 
+	# 	print "current simulation: {}".format(i)
+	# 	print
+	# 	victory = False
+	# 	round = 0
+	# 	print "setting up game"
+	# 	g = Game()
+	# 	for player in g.players:
+	# 		player.deposit(13)
+	# 	while not victory:
+	# 		round += 1
+	# 		print
+	# 		print "round: {}".format(round)
+	# 		print
+	# 		for nation in g.nations:
+	# 			if choice(randomtable):
+	# 				print "building factory for {}".format(nation)
+	# 				choices = g.getbuildfactoryoptions(nation)
+	# 				if choices:
+	# 					g.buildfactory(choice(choices))
+	# 			print "building units for {}".format(nation)
+	# 			g.buildunits(nation)
+	# 			print "moving units for {}".format(nation)
+	# 			for fleet in g.getfleets(nation):
+	# 				pick = choice(fleet.moveoptions())
+	# 				enemies = fleet.move(pick)
+	# 				if enemies:
+	# 					enemy = choice(enemies)
+	# 					g.battle(unit=fleet, enemy=enemy)
+	# 			for army in g.getarmies(nation):
+	# 				if len(army.moveoptions() + army.conveyoptions().keys()) > 0:
+	# 					pick = choice(army.moveoptions() + army.conveyoptions().keys())
+	# 					enemies = army.move(pick)
+	# 					if enemies:
+	# 						enemy = choice(enemies)
+	# 						g.battle(unit=army, enemy=enemy)
+	# 			print "gain momvement and convoy for {}".format(nation)
+	# 			g.gainmovement(nation)
+	# 			g.gainconvey(nation)
+	# 			print "claim areas"
+	# 			g.claimareas()
+	# 			print "taxation for {}".format(nation)
+	# 			tax = g.gettax(nation)
+	# 			upkeep = g.getupkeep(nation)
+	# 			bonus = g.getbonus(tax)
+	# 			powerlvl = g.getpowerlvl(tax)
+	# 			print "tax: {}, upkeep: {}, bonus: {}, powerlvl: {}".format(tax, upkeep, bonus, powerlvl)
+	# 			nation.deposit(tax)
+	# 			g.bank.deposit(nation.withdraw(upkeep))
+	# 			g.bank.deposit(nation.withdraw(bonus))
+	# 			print "some player receives {}".format(bonus)
+	# 			print "nation saldo: {}".format(nation.getsaldo())
+	# 			victory = nation.gainpower(powerlvl, g.winningscore)
+	# 			print "{} has {} power".format(nation, nation.powerlvl)
+
+	# 			if victory:
+	# 				print
+	# 				for nation in g.nations:
+	# 					print "{} has powerfactor of {}".format(nation, nation.powerlvl/5)
+	# 				break
+	# 			print
+
+	# 		for player in g.players:
+	# 			g.investorbonus(player)
+	# 			choices = g.investoroptions(player)
+	# 			print choices
+	# 			if choices:
+	# 				pick = choice(choices)
+	# 				pick.buybond(player)
+	# 				print pick
+
+	# 		# get majorshareholder
+	# 		# set control to majorshareholder
 
 
 
