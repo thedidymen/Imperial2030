@@ -275,7 +275,7 @@ class Entity(object):
 
 	def liquidity(self, amount):
 		"""returns True is amount is lower than self.money"""
-		return (self.money - amount) > 0
+		return (self.money - amount) >= 0
 
 	def withdraw(self, amount):
 		'''returns True if saldo + amount > 0 and gain amount to current saldo, else False and does not gain amount to saldo'''
