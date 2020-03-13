@@ -33,7 +33,7 @@ class B:
 
 a = A()
 
-b = B ()
+b = B()
 
 c = A()
 d = B()
